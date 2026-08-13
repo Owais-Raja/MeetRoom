@@ -14,8 +14,8 @@ parts/
 var/
 sdist/
 develop-eggs/
-.installed.cfg
-lib/
+# Python virtual environment lib folders
+!frontend/src/lib/
 lib64/
 wheels/
 
