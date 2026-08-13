@@ -1,7 +1,8 @@
 /**
- * WebRTC Configuration using public STUN & TURN servers for NAT Traversal.
- * Combines Google/Twilio STUN servers with Metered TURN relay servers to connect
- * peers across mobile hotspots, corporate firewalls, and remote home ISPs.
+ * WebRTC Configuration using public STUN & TURN servers for Cross-Network NAT Traversal.
+ * Uses max-bundle and rtcpMuxPolicy to bundle audio and video onto a single network socket.
+ * Combines Google, Cloudflare, Twilio STUN servers with Metered TURN relay servers to connect
+ * peers across mobile hotspots (4G/5G), corporate firewalls, and remote home ISPs.
  */
 export const RTC_CONFIGURATION: RTCConfiguration = {
   iceServers: [
@@ -11,16 +12,22 @@ export const RTC_CONFIGURATION: RTCConfiguration = {
     { urls: "stun:stun3.l.google.com:19302" },
     { urls: "stun:stun4.l.google.com:19302" },
     { urls: "stun:global.stun.twilio.com:3478" },
+    { urls: "stun:stun.cloudflare.com:3478" },
     {
       urls: [
         "turn:openrelay.metered.ca:80",
         "turn:openrelay.metered.ca:443",
         "turn:openrelay.metered.ca:443?transport=tcp",
+        "turn:global.relay.metered.ca:80",
+        "turn:global.relay.metered.ca:443",
+        "turn:global.relay.metered.ca:443?transport=tcp",
       ],
       username: "openrelay",
       credential: "openrelay",
     },
   ],
+  bundlePolicy: "max-bundle",
+  rtcpMuxPolicy: "require",
   iceCandidatePoolSize: 10,
 };
 
@@ -53,6 +60,11 @@ export function createPeerConnection(
     if (event.candidate) {
       onIceCandidate(event.candidate);
     }
+  };
+
+  // Log ICE connection state changes for cross-network debugging
+  pc.oniceconnectionstatechange = () => {
+    console.log(`[WebRTC ICE State] Peer '${peerId}': ${pc.iceConnectionState}`);
   };
 
   // 3. Handle incoming remote media tracks -> attach to remote video element
