@@ -5,6 +5,17 @@ import { format } from "date-fns";
 import { Calendar, Clock, Copy, Check, Video, X } from "lucide-react";
 import { api, Meeting } from "@/lib/api";
 
+/**
+ * Parse a datetime string as LOCAL time, ignoring any UTC offset/Z suffix.
+ * scheduled_at is stored as the user's local time on the server — we must
+ * never let the browser re-convert it from UTC to local (that would add +5:30).
+ */
+function parseLocalDatetime(value: string): Date {
+  // Strip trailing Z or +HH:MM / -HH:MM so the browser treats it as local
+  const normalized = value.replace(/Z$/, "").replace(/[+-]\d{2}:\d{2}$/, "");
+  return new Date(normalized);
+}
+
 export default function UpcomingMeetings() {
   const [activeTab, setActiveTab] = useState<"upcoming" | "recent">("upcoming");
   const [meetings, setMeetings] = useState<Meeting[]>([]);
@@ -128,7 +139,7 @@ export default function UpcomingMeetings() {
                   <Clock className="w-3.5 h-3.5 text-zinc-500" />
                   <span>
                     {meeting.scheduled_at
-                      ? format(new Date(meeting.scheduled_at), "MMM d, yyyy • h:mm a")
+                      ? format(parseLocalDatetime(meeting.scheduled_at), "MMM d, yyyy • h:mm a")
                       : meeting.started_at
                       ? format(new Date(meeting.started_at), "MMM d, yyyy • h:mm a")
                       : "No scheduled time"}

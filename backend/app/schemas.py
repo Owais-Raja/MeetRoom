@@ -97,10 +97,19 @@ class MeetingResponse(MeetingBase):
 
     model_config = ConfigDict(from_attributes=True)
 
-    @field_validator("scheduled_at", "started_at", "ended_at", "created_at", mode="after")
+    @field_validator("started_at", "ended_at", "created_at", mode="after")
     @classmethod
-    def serialize_naive_database_times_as_utc(cls, value: Optional[datetime]) -> Optional[datetime]:
-        """SQLite returns naive datetimes even when the original input was UTC."""
+    def serialize_utc_times(cls, value: Optional[datetime]) -> Optional[datetime]:
+        """SQLite returns naive datetimes for real UTC fields. Stamp them as UTC
+        so the frontend can correctly convert them to local time."""
         if value is not None and value.tzinfo is None:
             return value.replace(tzinfo=timezone.utc)
+        return value
+
+    @field_validator("scheduled_at", mode="after")
+    @classmethod
+    def preserve_scheduled_at_as_local(cls, value: Optional[datetime]) -> Optional[datetime]:
+        """scheduled_at is stored as the user's local time (naive, no timezone).
+        Do NOT stamp it as UTC — leave tzinfo=None so FastAPI serializes it
+        without any offset, and the frontend can display it as-is."""
         return value
