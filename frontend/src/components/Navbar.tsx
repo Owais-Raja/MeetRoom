@@ -6,6 +6,8 @@ import { ChevronDown } from "lucide-react";
 import { api, User } from "@/lib/api";
 import SettingsModal from "@/components/SettingsModal";
 
+import ToastContainer, { showComingSoonToast } from "@/components/Toast";
+
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
   const [isSettingsOpen, setIsSettingsOpen] = useState(false);
@@ -39,6 +41,7 @@ export default function Navbar() {
 
   return (
     <>
+      <ToastContainer />
       <nav className="bg-white border-b border-gray-200 sticky top-0 z-40 h-14 flex items-center px-6">
         {/* Logo */}
         <div
@@ -49,7 +52,7 @@ export default function Navbar() {
             className="font-bold text-2xl tracking-tight select-none"
             style={{ color: "#0B5CFF", letterSpacing: "-0.5px" }}
           >
-            zoom
+            MeetRoom
           </span>
         </div>
 
@@ -58,7 +61,8 @@ export default function Navbar() {
           {["Products", "Solutions", "Resources", "Plans & Pricing"].map((item) => (
             <button
               key={item}
-              className="px-3 py-1.5 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors font-medium"
+              onClick={() => showComingSoonToast(item)}
+              className="px-3 py-1.5 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors font-medium cursor-pointer"
             >
               {item}
             </button>
@@ -79,11 +83,20 @@ export default function Navbar() {
           >
             Join
           </button>
-          <button className="px-3 py-1.5 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors font-medium flex items-center gap-1">
+          <button
+            onClick={() => {
+              // Host button triggers instant meeting creation
+              window.dispatchEvent(new CustomEvent("zoom:newmeeting"));
+            }}
+            className="px-3 py-1.5 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors font-medium flex items-center gap-1 cursor-pointer"
+          >
             <span>Host</span>
             <ChevronDown className="w-3.5 h-3.5" />
           </button>
-          <button className="px-3 py-1.5 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors font-medium flex items-center gap-1">
+          <button
+            onClick={() => showComingSoonToast("Web App Settings")}
+            className="px-3 py-1.5 text-sm text-gray-700 hover:text-gray-900 hover:bg-gray-100 rounded-md transition-colors font-medium flex items-center gap-1 cursor-pointer"
+          >
             <span>Web App</span>
             <ChevronDown className="w-3.5 h-3.5" />
           </button>
@@ -91,7 +104,7 @@ export default function Navbar() {
           {/* User Avatar */}
           <button
             onClick={() => setIsSettingsOpen(true)}
-            className="ml-2 w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold hover:opacity-90 transition-opacity flex-shrink-0"
+            className="ml-2 w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-semibold hover:opacity-90 transition-opacity flex-shrink-0 cursor-pointer"
             style={{ backgroundColor: "#747487" }}
             title={user?.name || "Profile Settings"}
             aria-label="Open profile settings"

@@ -5,6 +5,8 @@ import { format } from "date-fns";
 import { Calendar, Clock, Copy, Check, Video, X, ArrowRight } from "lucide-react";
 import { api, Meeting } from "@/lib/api";
 
+import { showComingSoonToast } from "@/components/Toast";
+
 /**
  * Parse a datetime string as LOCAL time, ignoring any UTC offset/Z suffix.
  * scheduled_at is stored as the user's local time on the server — we must
@@ -93,7 +95,8 @@ export default function UpcomingMeetings({ defaultTab = "upcoming" }: UpcomingMe
           </button>
         </div>
         <button
-          className="text-xs font-medium flex items-center gap-0.5 hover:underline transition-colors"
+          onClick={() => showComingSoonToast("Meetings Directory")}
+          className="text-xs font-medium flex items-center gap-0.5 hover:underline transition-colors cursor-pointer"
           style={{ color: "#0B5CFF" }}
         >
           Visit Meetings

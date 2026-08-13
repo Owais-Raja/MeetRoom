@@ -6,6 +6,8 @@ import { useRouter } from "next/navigation";
 import { api, Meeting } from "@/lib/api";
 import ShareMeetingModal from "@/components/ShareMeetingModal";
 
+import { showComingSoonToast } from "@/components/Toast";
+
 export default function ActionButtons() {
   const router = useRouter();
   const [creating, setCreating] = useState(false);
@@ -67,7 +69,7 @@ export default function ActionButtons() {
       bgColor: "#0B5CFF",
       hoverBgColor: "#0948cc",
       onClick: () =>
-        alert("Share Screen functionality is available during active calls."),
+        showComingSoonToast("Share Screen (join a meeting room to share)"),
     },
   ];
 

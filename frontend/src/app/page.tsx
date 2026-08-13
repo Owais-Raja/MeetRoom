@@ -8,6 +8,7 @@ import Sidebar from "@/components/Sidebar";
 import ActionButtons from "@/components/ActionButtons";
 import UpcomingMeetings from "@/components/UpcomingMeetings";
 import { api, User } from "@/lib/api";
+import { showComingSoonToast } from "@/components/Toast";
 
 export default function Home() {
   const [user, setUser] = useState<User | null>(null);
@@ -88,11 +89,15 @@ export default function Home() {
                   </div>
                 </div>
                 <div className="flex flex-col items-end gap-1.5">
-                  <button className="text-sm text-gray-700 border border-gray-300 rounded-md px-4 py-1.5 hover:bg-gray-50 transition-colors font-medium">
+                  <button
+                    onClick={() => showComingSoonToast("Plan Management")}
+                    className="text-sm text-gray-700 border border-gray-300 rounded-md px-4 py-1.5 hover:bg-gray-50 transition-colors font-medium cursor-pointer"
+                  >
                     Manage Plan
                   </button>
                   <button
-                    className="text-sm hover:underline font-medium"
+                    onClick={() => showComingSoonToast("Plan Details")}
+                    className="text-sm hover:underline font-medium cursor-pointer"
                     style={{ color: "#0B5CFF" }}
                   >
                     View Plan Details
