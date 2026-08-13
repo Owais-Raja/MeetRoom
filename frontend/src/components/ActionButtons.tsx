@@ -75,25 +75,25 @@ export default function ActionButtons() {
 
   return (
     <>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
         {actions.map((action, idx) => (
           <button
             key={idx}
             onClick={action.onClick}
             disabled={action.isLoading}
-            className="flex flex-col items-center gap-2.5 group disabled:opacity-60"
+            className="flex flex-col items-center gap-2 sm:gap-2.5 group disabled:opacity-60 cursor-pointer"
             aria-label={action.label}
           >
             <div
-              className="w-16 h-16 rounded-2xl flex items-center justify-center shadow-sm transition-all duration-150 group-hover:scale-105 group-active:scale-95"
+              className="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl flex items-center justify-center shadow-sm transition-all duration-150 group-hover:scale-105 group-active:scale-95"
               style={{ backgroundColor: action.bgColor }}
             >
               <action.icon
-                className={`w-8 h-8 text-white ${action.isLoading ? "animate-spin" : ""}`}
+                className={`w-7 h-7 sm:w-8 sm:h-8 text-white ${action.isLoading ? "animate-spin" : ""}`}
                 strokeWidth={1.8}
               />
             </div>
-            <span className="text-sm font-medium text-gray-700">{action.label}</span>
+            <span className="text-xs sm:text-sm font-medium text-gray-700">{action.label}</span>
           </button>
         ))}
       </div>

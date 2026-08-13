@@ -188,7 +188,7 @@ export default function MeetingLobbyPage({ params }: PageProps) {
     <main className="min-h-screen bg-[#F5F5F5] flex flex-col">
       <Navbar />
 
-      <div className="flex-1 max-w-5xl w-full mx-auto px-6 py-8 flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-12">
+      <div className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8 flex flex-col lg:flex-row items-center justify-center gap-6 lg:gap-12">
         {/* Left: Camera Preview */}
         <div className="w-full lg:w-3/5">
           <div className="relative aspect-video bg-gray-900 rounded-2xl overflow-hidden border border-gray-200 shadow-lg flex items-center justify-center">
@@ -206,20 +206,20 @@ export default function MeetingLobbyPage({ params }: PageProps) {
             {isVideoOff && (
               <div className="flex flex-col items-center justify-center gap-3">
                 <div
-                  className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold text-white shadow-lg"
+                  className="w-16 h-16 sm:w-20 sm:h-20 rounded-full flex items-center justify-center text-xl sm:text-2xl font-bold text-white shadow-lg"
                   style={{ backgroundColor: "#747487" }}
                 >
                   {displayName.charAt(0).toUpperCase()}
                 </div>
-                <span className="text-gray-400 text-sm">Camera is off</span>
+                <span className="text-gray-400 text-xs sm:text-sm">Camera is off</span>
               </div>
             )}
 
             {/* Bottom Controls Overlay */}
-            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-black/60 backdrop-blur-sm px-5 py-2.5 rounded-full border border-white/10">
+            <div className="absolute bottom-3 sm:bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-black/60 backdrop-blur-sm px-4 sm:px-5 py-2 sm:py-2.5 rounded-full border border-white/10">
               <button
                 onClick={toggleAudio}
-                className={`p-2.5 rounded-full transition-colors ${
+                className={`p-2 sm:p-2.5 rounded-full transition-colors ${
                   isAudioMuted
                     ? "bg-red-600 text-white hover:bg-red-700"
                     : "bg-white/20 text-white hover:bg-white/30"
@@ -255,8 +255,8 @@ export default function MeetingLobbyPage({ params }: PageProps) {
         </div>
 
         {/* Right: Pre-Join Form */}
-        <div className="w-full lg:w-2/5 max-w-sm">
-          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-7 space-y-5">
+        <div className="w-full lg:w-2/5 max-w-md lg:max-w-sm">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-5 sm:p-7 space-y-4 sm:space-y-5">
             <div>
               <h1 className="text-xl font-semibold text-gray-900 mb-1">
                 {meeting.title}

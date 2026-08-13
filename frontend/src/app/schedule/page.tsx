@@ -73,11 +73,11 @@ export default function SchedulePage() {
     <main className="min-h-screen bg-[#F5F5F5] flex flex-col">
       <Navbar />
 
-      <div className="flex-1 flex items-start justify-center p-6 pt-10">
+      <div className="flex-1 flex items-start justify-center p-4 sm:p-6 pt-6 sm:pt-10">
         <div className="w-full max-w-2xl">
           <button
             onClick={() => router.push("/")}
-            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors mb-6 font-medium"
+            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors mb-4 sm:mb-6 font-medium cursor-pointer"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Back to Dashboard</span>
@@ -85,7 +85,7 @@ export default function SchedulePage() {
 
           <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
             {/* Card Header */}
-            <div className="px-8 py-6 border-b border-gray-100">
+            <div className="px-5 sm:px-8 py-5 sm:py-6 border-b border-gray-100">
               <div className="flex items-center gap-3">
                 <div
                   className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
@@ -94,10 +94,10 @@ export default function SchedulePage() {
                   <Calendar className="w-5 h-5" style={{ color: "#0B5CFF" }} />
                 </div>
                 <div>
-                  <h1 className="text-xl font-semibold text-gray-900">
+                  <h1 className="text-lg sm:text-xl font-semibold text-gray-900">
                     Schedule a Meeting
                   </h1>
-                  <p className="text-sm text-gray-500">
+                  <p className="text-xs sm:text-sm text-gray-500">
                     Plan a future video meeting and generate an invite link
                   </p>
                 </div>
@@ -105,7 +105,7 @@ export default function SchedulePage() {
             </div>
 
             {/* Form */}
-            <form onSubmit={handleSubmit} className="px-8 py-6 space-y-5">
+            <form onSubmit={handleSubmit} className="px-5 sm:px-8 py-5 sm:py-6 space-y-4 sm:space-y-5">
               {error && (
                 <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm font-medium">
                   {error}

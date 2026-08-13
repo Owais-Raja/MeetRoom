@@ -58,46 +58,46 @@ export default function Home() {
     <div className="min-h-screen bg-[#F5F5F5] flex flex-col">
       <Navbar />
 
-      {/* Body: sidebar + content */}
-      <div className="flex flex-1 overflow-hidden" style={{ height: "calc(100vh - 56px)" }}>
-        {/* Left Sidebar */}
+      {/* Body: responsive flex container */}
+      <div className="flex flex-col lg:flex-row flex-1 lg:h-[calc(100vh-56px)] overflow-hidden">
+        {/* Sidebar (Fixed on desktop, horizontal scroll bar on mobile) */}
         <Sidebar />
 
         {/* Scrollable Content Area */}
         <div className="flex-1 overflow-y-auto">
-          <div className="p-6 flex gap-5 min-h-full items-start">
+          <div className="p-4 sm:p-6 flex flex-col lg:flex-row gap-5 min-h-full items-start">
 
             {/* ── Center Column ── */}
-            <div className="flex-1 min-w-0 space-y-4">
+            <div className="w-full lg:flex-1 min-w-0 space-y-4">
 
               {/* User Profile Card */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center justify-between shadow-sm">
-                <div className="flex items-center gap-4">
+              <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 shadow-sm">
+                <div className="flex items-center gap-3.5">
                   <div
-                    className="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-semibold flex-shrink-0"
+                    className="w-12 h-12 sm:w-14 sm:h-14 rounded-full flex items-center justify-center text-white text-lg sm:text-xl font-semibold flex-shrink-0"
                     style={{ backgroundColor: "#747487" }}
                   >
                     {initials}
                   </div>
                   <div>
-                    <h2 className="text-lg font-semibold text-gray-900 leading-tight">
+                    <h2 className="text-base sm:text-lg font-semibold text-gray-900 leading-tight">
                       {user?.name || "Default User"}
                     </h2>
-                    <p className="text-sm font-medium mt-0.5" style={{ color: "#0B5CFF" }}>
+                    <p className="text-xs sm:text-sm font-medium mt-0.5" style={{ color: "#0B5CFF" }}>
                       Plan: Workplace Basic
                     </p>
                   </div>
                 </div>
-                <div className="flex flex-col items-end gap-1.5">
+                <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-start gap-2 pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
                   <button
                     onClick={() => showComingSoonToast("Plan Management")}
-                    className="text-sm text-gray-700 border border-gray-300 rounded-md px-4 py-1.5 hover:bg-gray-50 transition-colors font-medium cursor-pointer"
+                    className="text-xs sm:text-sm text-gray-700 border border-gray-300 rounded-md px-3 py-1.5 hover:bg-gray-50 transition-colors font-medium cursor-pointer"
                   >
                     Manage Plan
                   </button>
                   <button
                     onClick={() => showComingSoonToast("Plan Details")}
-                    className="text-sm hover:underline font-medium cursor-pointer"
+                    className="text-xs sm:text-sm hover:underline font-medium cursor-pointer"
                     style={{ color: "#0B5CFF" }}
                   >
                     View Plan Details
@@ -106,13 +106,13 @@ export default function Home() {
               </div>
 
               {/* Meeting Action Buttons */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+              <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-sm">
                 <ActionButtons />
               </div>
 
               {/* Recent Activity */}
-              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
-                <h3 className="text-base font-semibold text-gray-900 mb-4">
+              <div className="bg-white rounded-xl border border-gray-200 p-4 sm:p-5 shadow-sm">
+                <h3 className="text-base font-semibold text-gray-900 mb-3">
                   Recent activity
                 </h3>
                 <UpcomingMeetings defaultTab="recent" />
@@ -120,19 +120,19 @@ export default function Home() {
             </div>
 
             {/* ── Right Panel ── */}
-            <div className="w-72 flex-shrink-0 space-y-4">
+            <div className="w-full lg:w-72 flex-shrink-0 space-y-4">
 
               {/* Quick Icon Actions */}
               <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
-                <div className="grid grid-cols-3 gap-3 mb-5">
+                <div className="grid grid-cols-3 gap-3 mb-4 sm:mb-5">
                   {/* Schedule */}
                   <button
                     onClick={() => router.push("/schedule")}
-                    className="flex flex-col items-center gap-1.5 group"
+                    className="flex flex-col items-center gap-1.5 group cursor-pointer"
                     aria-label="Schedule a meeting"
                   >
                     <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl group-hover:opacity-90 transition-all group-hover:scale-105 active:scale-95 shadow-sm"
+                      className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-white text-lg sm:text-xl group-hover:opacity-90 transition-all group-hover:scale-105 active:scale-95 shadow-sm"
                       style={{ backgroundColor: "#0B5CFF" }}
                     >
                       📅
@@ -143,11 +143,11 @@ export default function Home() {
                   {/* Join */}
                   <button
                     onClick={() => router.push("/join")}
-                    className="flex flex-col items-center gap-1.5 group"
+                    className="flex flex-col items-center gap-1.5 group cursor-pointer"
                     aria-label="Join a meeting"
                   >
                     <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl group-hover:opacity-90 transition-all group-hover:scale-105 active:scale-95 shadow-sm"
+                      className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-white text-lg sm:text-xl group-hover:opacity-90 transition-all group-hover:scale-105 active:scale-95 shadow-sm"
                       style={{ backgroundColor: "#0B5CFF" }}
                     >
                       🔗
@@ -158,15 +158,13 @@ export default function Home() {
                   {/* Host (New Meeting) */}
                   <button
                     onClick={() => {
-                      // Trigger the New Meeting action via ActionButtons — 
-                      // We dispatch a custom event that ActionButtons listens to
                       window.dispatchEvent(new CustomEvent("zoom:newmeeting"));
                     }}
-                    className="flex flex-col items-center gap-1.5 group"
+                    className="flex flex-col items-center gap-1.5 group cursor-pointer"
                     aria-label="Host a new meeting"
                   >
                     <div
-                      className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl group-hover:opacity-90 transition-all group-hover:scale-105 active:scale-95 shadow-sm"
+                      className="w-11 h-11 sm:w-12 sm:h-12 rounded-xl flex items-center justify-center text-white text-lg sm:text-xl group-hover:opacity-90 transition-all group-hover:scale-105 active:scale-95 shadow-sm"
                       style={{ backgroundColor: "#E86C12" }}
                     >
                       🎥
@@ -176,17 +174,17 @@ export default function Home() {
                 </div>
 
                 {/* Personal Meeting ID */}
-                <div className="border-t border-gray-100 pt-4">
-                  <p className="text-sm font-semibold text-gray-900 mb-1">
+                <div className="border-t border-gray-100 pt-3 sm:pt-4">
+                  <p className="text-xs sm:text-sm font-semibold text-gray-900 mb-1">
                     Personal Meeting ID
                   </p>
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-gray-500 font-mono tracking-wide">
+                  <div className="flex items-center justify-between sm:justify-start gap-2 bg-gray-50 sm:bg-transparent p-2 sm:p-0 rounded-lg">
+                    <span className="text-xs sm:text-sm text-gray-600 font-mono tracking-wide">
                       {personalMeetingId}
                     </span>
                     <button
                       onClick={handleCopyPMI}
-                      className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+                      className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0 p-1"
                       title="Copy Meeting ID"
                       aria-label="Copy personal meeting ID"
                     >

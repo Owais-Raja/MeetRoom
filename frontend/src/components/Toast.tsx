@@ -6,8 +6,8 @@ import { Sparkles, X } from "lucide-react";
 export function showComingSoonToast(featureName?: string) {
   if (typeof window !== "undefined") {
     const msg = featureName
-      ? `🧑‍🍳 ${featureName} is cooking right now! Coming Soon 🚀`
-      : "🧑‍🍳 Feature in the oven! Coming Soon 🚀";
+      ? `${featureName} is coming soon! 🚀`
+      : "This feature is coming soon! 🚀";
     window.dispatchEvent(new CustomEvent("meetroom:toast", { detail: { message: msg } }));
   }
 }
