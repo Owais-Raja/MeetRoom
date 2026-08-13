@@ -205,15 +205,24 @@ def join_meeting(
     host_name = host_user.name.strip().lower() if host_user else ""
     user_display = payload.display_name.strip().lower()
 
-    # User is ONLY assigned 'host' if their display name matches the meeting host's name,
-    # or if display_name matches default host name. Guests NEVER get host permissions.
+    # User is ONLY assigned 'host' if their display name matches the host's profile name
+    # AND no active host has joined the room yet. Guests NEVER get host permissions.
     is_host = False
     if host_name and user_display == host_name:
-        is_host = True
-    elif user_display.startswith("default user"):
-        is_host = True
+        existing_active_host = (
+            db.query(models.Participant)
+            .filter(
+                models.Participant.meeting_id == meeting.id,
+                models.Participant.role == "host",
+                models.Participant.left_at == None
+            )
+            .first()
+        )
+        if not existing_active_host:
+            is_host = True
 
     role = "host" if is_host else "participant"
+
 
 
     participant = models.Participant(

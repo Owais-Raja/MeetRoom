@@ -1,6 +1,7 @@
 /**
- * WebRTC Configuration using public STUN servers for NAT Traversal.
- * STUN servers assist peers in discovering public IP addresses across home, mobile, and office networks.
+ * WebRTC Configuration using public STUN & TURN servers for NAT Traversal.
+ * Combines Google/Twilio STUN servers with Metered TURN relay servers to connect
+ * peers across mobile hotspots, corporate firewalls, and remote home ISPs.
  */
 export const RTC_CONFIGURATION: RTCConfiguration = {
   iceServers: [
@@ -10,6 +11,15 @@ export const RTC_CONFIGURATION: RTCConfiguration = {
     { urls: "stun:stun3.l.google.com:19302" },
     { urls: "stun:stun4.l.google.com:19302" },
     { urls: "stun:global.stun.twilio.com:3478" },
+    {
+      urls: [
+        "turn:openrelay.metered.ca:80",
+        "turn:openrelay.metered.ca:443",
+        "turn:openrelay.metered.ca:443?transport=tcp",
+      ],
+      username: "openrelay",
+      credential: "openrelay",
+    },
   ],
   iceCandidatePoolSize: 10,
 };
@@ -29,7 +39,6 @@ export function createPeerConnection(
   onRemoteStream: (stream: MediaStream) => void
 ): RTCPeerConnection {
   const pc = new RTCPeerConnection(RTC_CONFIGURATION);
-  const remoteMediaStream = new MediaStream();
 
   // 1. Add all active local media tracks (Audio + Video) to the Peer Connection
   if (localStream) {
@@ -45,25 +54,14 @@ export function createPeerConnection(
     }
   };
 
-  // 3. Handle incoming remote media tracks -> attach to remote video/audio elements
+  // 3. Handle incoming remote media tracks -> attach to remote video element
   pc.ontrack = (event) => {
-    console.log(`[WebRTC] Received remote track '${event.track.kind}' from peer '${peerId}'`);
-    
-    // Add incoming track to the dedicated remote MediaStream
+    console.log(`[WebRTC] Received remote track '${event.track.kind}' from peer '${peerId}'`, event.streams);
     if (event.streams && event.streams[0]) {
-      event.streams[0].getTracks().forEach((track) => {
-        if (!remoteMediaStream.getTracks().some((t) => t.id === track.id)) {
-          remoteMediaStream.addTrack(track);
-        }
-      });
+      onRemoteStream(event.streams[0]);
     } else if (event.track) {
-      if (!remoteMediaStream.getTracks().some((t) => t.id === event.track.id)) {
-        remoteMediaStream.addTrack(event.track);
-      }
+      onRemoteStream(new MediaStream([event.track]));
     }
-
-    // Pass a fresh MediaStream instance wrapping all tracks so React detects state update
-    onRemoteStream(new MediaStream(remoteMediaStream.getTracks()));
   };
 
   return pc;

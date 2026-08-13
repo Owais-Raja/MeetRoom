@@ -49,22 +49,13 @@ interface RoomProps {
  */
 function RemoteVideoTile({ peer }: { peer: RemotePeer }) {
   const videoRef = useRef<HTMLVideoElement>(null);
-  const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
-    if (peer.stream) {
-      if (videoRef.current) {
-        videoRef.current.srcObject = peer.stream;
-        videoRef.current.play().catch((err) => {
-          console.warn(`[WebRTC Video] Play error for peer ${peer.peerId}:`, err);
-        });
-      }
-      if (audioRef.current) {
-        audioRef.current.srcObject = peer.stream;
-        audioRef.current.play().catch((err) => {
-          console.warn(`[WebRTC Audio] Play error for peer ${peer.peerId}:`, err);
-        });
-      }
+    if (videoRef.current && peer.stream) {
+      videoRef.current.srcObject = peer.stream;
+      videoRef.current.play().catch((err) => {
+        console.warn(`[WebRTC Media Play Error] Peer ${peer.peerId}:`, err);
+      });
     }
   }, [peer.stream]);
 
@@ -76,11 +67,6 @@ function RemoteVideoTile({ peer }: { peer: RemotePeer }) {
         playsInline
         className="w-full h-full object-cover"
       />
-      <audio
-        ref={audioRef}
-        autoPlay
-        playsInline
-      />
       <div className="absolute bottom-4 left-4 bg-zinc-950/80 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-zinc-800 text-xs font-medium flex items-center space-x-2">
         <span>{peer.displayName || "Participant"}</span>
         <Mic className="w-3.5 h-3.5 text-emerald-400" />
@@ -88,6 +74,7 @@ function RemoteVideoTile({ peer }: { peer: RemotePeer }) {
     </div>
   );
 }
+
 
 export default function MeetingRoomPage({ params }: RoomProps) {
   const { code } = use(params);
@@ -269,6 +256,13 @@ export default function MeetingRoomPage({ params }: RoomProps) {
   };
 
 
+  const updatePeerDisplayName = (peerId: string, displayName: string) => {
+    if (!displayName || displayName === "Participant") return;
+    setRemotePeers((prev) =>
+      prev.map((p) => (p.peerId === peerId ? { ...p, displayName } : p))
+    );
+  };
+
   // 3. WebRTC Signaling Message Handler (including Chat & Host Controls)
   const handleSignalingMessage = async (msg: SignalingMessage, currentLocalStream: MediaStream | null) => {
     const { type, from, to, payload } = msg;
@@ -297,6 +291,7 @@ export default function MeetingRoomPage({ params }: RoomProps) {
       case "offer": {
         console.log(`[Mesh WebRTC] Received offer from '${from}' (${peerName}). Creating answer...`);
         const pc = getOrCreatePeerConnection(from, peerName, currentLocalStream);
+        updatePeerDisplayName(from, peerName);
 
         if (pc.signalingState === "stable" || pc.signalingState === "have-local-offer") {
           if (pc.signalingState === "have-local-offer") {
@@ -327,6 +322,7 @@ export default function MeetingRoomPage({ params }: RoomProps) {
 
       case "answer": {
         const pc = pcsRef.current.get(from);
+        updatePeerDisplayName(from, peerName);
         if (pc && pc.signalingState === "have-local-offer") {
           console.log(`[Mesh WebRTC] Received answer from '${from}'. Setting remote description...`);
           await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
@@ -558,17 +554,31 @@ export default function MeetingRoomPage({ params }: RoomProps) {
     setChatInputText("");
   };
 
+  // Muted peers tracking state
+  const [mutedPeers, setMutedPeers] = useState<Set<string>>(new Set());
+
   // Host Action: Mute All Participants
   const handleMuteAll = () => {
     if (!isHost) return;
     signalingClientRef.current?.send("mute-all", null);
+    setMutedPeers(new Set(remotePeers.map((p) => p.peerId)));
   };
 
   // Host Action: Mute Specific Participant
   const handleMuteSingleParticipant = (peerId: string) => {
     if (!isHost) return;
     signalingClientRef.current?.send("mute-participant", peerId);
+    setMutedPeers((prev) => {
+      const next = new Set(prev);
+      if (next.has(peerId)) {
+        next.delete(peerId);
+      } else {
+        next.add(peerId);
+      }
+      return next;
+    });
   };
+
 
   // Host Action: Remove Specific Participant
   const handleRemoveParticipant = async (peerId: string) => {
@@ -770,26 +780,37 @@ export default function MeetingRoomPage({ params }: RoomProps) {
                   </div>
 
                   <div className="flex items-center space-x-2">
-                    <Mic className="w-4 h-4 text-emerald-400" />
+                    {isHost ? (
+                      <button
+                        onClick={() => handleMuteSingleParticipant(peer.peerId)}
+                        className="p-1 rounded-lg transition-colors hover:bg-zinc-800"
+                        title={mutedPeers.has(peer.peerId) ? "Unmute participant" : "Mute participant"}
+                      >
+                        {mutedPeers.has(peer.peerId) ? (
+                          <MicOff className="w-4 h-4 text-red-400" />
+                        ) : (
+                          <Mic className="w-4 h-4 text-emerald-400" />
+                        )}
+                      </button>
+                    ) : (
+                      mutedPeers.has(peer.peerId) ? (
+                        <MicOff className="w-4 h-4 text-red-400" />
+                      ) : (
+                        <Mic className="w-4 h-4 text-emerald-400" />
+                      )
+                    )}
+
                     {isHost && (
-                      <>
-                        <button
-                          onClick={() => handleMuteSingleParticipant(peer.peerId)}
-                          className="p-1 text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors"
-                          title="Mute microphone"
-                        >
-                          <VolumeX className="w-4 h-4" />
-                        </button>
-                        <button
-                          onClick={() => handleRemoveParticipant(peer.peerId)}
-                          className="p-1 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                          title="Remove participant"
-                        >
-                          <UserX className="w-4 h-4" />
-                        </button>
-                      </>
+                      <button
+                        onClick={() => handleRemoveParticipant(peer.peerId)}
+                        className="p-1 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                        title="Remove participant"
+                      >
+                        <UserX className="w-4 h-4" />
+                      </button>
                     )}
                   </div>
+
                 </div>
               ))}
             </div>
