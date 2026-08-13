@@ -43,7 +43,7 @@ A full-stack video meeting platform built for high-quality real-time peer-to-pee
 │   │   └── lib/
 │   │       └── api.ts       # Typed API client wrapper for FastAPI
 │   └── package.json
-├── zoom-clone-architecture.md # Architecture specification document (internal reference)
+├── meetroom-architecture.md   # Architecture specification document
 └── README.md                # Project documentation
 ```
 
