@@ -7,6 +7,31 @@ from app.routers import users, meetings, signaling
 # Ensure tables exist on startup (seed script handles full table creation/reset)
 Base.metadata.create_all(bind=engine)
 
+# Auto-seed default user (id=1) on startup if missing (for production deployments)
+def ensure_default_user():
+    from app.database import SessionLocal
+    from app.models import User
+    db = SessionLocal()
+    try:
+        user = db.query(User).filter(User.id == 1).first()
+        if not user:
+            default_u = User(
+                id=1,
+                name="Default User",
+                email="user@example.com",
+                avatar_url="https://api.dicebear.com/7.x/avataaars/svg?seed=Default"
+            )
+            db.add(default_u)
+            db.commit()
+            print("Auto-seeded default user (id=1) on startup.")
+    except Exception as e:
+        db.rollback()
+        print(f"Startup auto-seed warning: {e}")
+    finally:
+        db.close()
+
+ensure_default_user()
+
 app = FastAPI(
     title="MeetRoom API",
     description="Backend API for MeetRoom Video Meeting Platform with REST endpoints and WebSocket WebRTC signaling.",
