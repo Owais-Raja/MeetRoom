@@ -17,7 +17,7 @@ export default function ActionButtons() {
       router.push(`/meeting/${newMeeting.meeting_code}`);
     } catch (err) {
       console.error("Failed to create instant meeting:", err);
-      alert("Error starting instant meeting. Make sure FastAPI backend is running on port 8000.");
+      alert("Error starting instant meeting. Please verify your backend server connection.");
     } finally {
       setCreating(false);
     }
