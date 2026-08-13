@@ -4,6 +4,12 @@ A full-stack video meeting platform built for high-quality real-time peer-to-pee
 
 ---
 
+## 🌐 Live Deployment Links
+
+- **Frontend Web Application (Vercel)**: [https://meetroom-scaler.vercel.app](https://meetroom-scaler.vercel.app)
+- **Backend API & WebSocket Server (Render)**: [https://meetroom-77y7.onrender.com](https://meetroom-77y7.onrender.com)
+- **GitHub Repository**: [https://github.com/Owais-Raja/MeetRoom](https://github.com/Owais-Raja/MeetRoom)
+
 ## 🛠️ Tech Stack
 
 - **Frontend**: Next.js 14+ (App Router, TypeScript, Tailwind CSS, Lucide React icons)
