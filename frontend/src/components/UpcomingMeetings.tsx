@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { Calendar, Clock, Copy, Check, Video } from "lucide-react";
+import { Calendar, Clock, Copy, Check, Video, X } from "lucide-react";
 import { api, Meeting } from "@/lib/api";
 
 export default function UpcomingMeetings() {
@@ -10,6 +10,7 @@ export default function UpcomingMeetings() {
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
+  const [cancellingCode, setCancellingCode] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchMeetings() {
@@ -33,6 +34,20 @@ export default function UpcomingMeetings() {
     navigator.clipboard.writeText(link);
     setCopiedCode(code);
     setTimeout(() => setCopiedCode(null), 2000);
+  };
+
+  const handleCancel = async (code: string) => {
+    if (!confirm("Are you sure you want to cancel this meeting?")) return;
+    setCancellingCode(code);
+    try {
+      await api.cancelMeeting(code);
+      // Remove from list
+      setMeetings((prev) => prev.filter((m) => m.meeting_code !== code));
+    } catch (err: any) {
+      alert(`Failed to cancel meeting: ${err?.message || err}`);
+    } finally {
+      setCancellingCode(null);
+    }
   };
 
   return (
@@ -99,6 +114,8 @@ export default function UpcomingMeetings() {
                       ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
                       : meeting.status === "ongoing"
                       ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
+                      : meeting.status === "cancelled"
+                      ? "bg-red-500/10 text-red-400 border border-red-500/20"
                       : "bg-zinc-800 text-zinc-400"
                   }`}
                 >
@@ -125,12 +142,23 @@ export default function UpcomingMeetings() {
 
               <div className="flex gap-2 pt-1">
                 {activeTab === "upcoming" ? (
-                  <button
-                    onClick={() => window.location.href = `/meeting/${meeting.meeting_code}`}
-                    className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs py-2 rounded-xl font-medium transition-colors"
-                  >
-                    Start / Join
-                  </button>
+                  <>
+                    <button
+                      onClick={() => window.location.href = `/meeting/${meeting.meeting_code}`}
+                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs py-2 rounded-xl font-medium transition-colors"
+                    >
+                      Start / Join
+                    </button>
+                    <button
+                      onClick={() => handleCancel(meeting.meeting_code)}
+                      disabled={cancellingCode === meeting.meeting_code}
+                      className="px-3 bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 text-xs py-2 rounded-xl transition-colors flex items-center space-x-1.5 disabled:opacity-50"
+                      title="Cancel meeting"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                      <span>{cancellingCode === meeting.meeting_code ? "Cancelling..." : "Cancel"}</span>
+                    </button>
+                  </>
                 ) : (
                   <button
                     disabled

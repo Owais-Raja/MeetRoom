@@ -160,6 +160,10 @@ Same-Wi-Fi calls can connect directly. Calls between different Wi-Fi, mobile, or
 
 Verify the setup by opening `https://meetroom-77y7.onrender.com/api/turn-credentials`. It should return an `iceServers` array rather than a 503 error. Do not add this secret to Vercel or any `NEXT_PUBLIC_*` variable.
 
+### Time Zones
+
+Scheduled meeting times are stored in UTC and shown in each browser's local time zone. For example, a meeting scheduled for 9:35 PM in India is displayed as 9:35 PM for viewers in India.
+
 ---
 
 ## 🧪 How to Verify Core Features

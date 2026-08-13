@@ -1,6 +1,6 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional, List
-from pydantic import BaseModel, Field, ConfigDict
+from pydantic import BaseModel, Field, ConfigDict, field_validator
 
 
 # -----------------------------------------------------------------------------
@@ -96,3 +96,11 @@ class MeetingResponse(MeetingBase):
     participants: List[ParticipantResponse] = []
 
     model_config = ConfigDict(from_attributes=True)
+
+    @field_validator("scheduled_at", "started_at", "ended_at", "created_at", mode="after")
+    @classmethod
+    def serialize_naive_database_times_as_utc(cls, value: Optional[datetime]) -> Optional[datetime]:
+        """SQLite returns naive datetimes even when the original input was UTC."""
+        if value is not None and value.tzinfo is None:
+            return value.replace(tzinfo=timezone.utc)
+        return value

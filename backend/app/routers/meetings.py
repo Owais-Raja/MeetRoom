@@ -106,7 +106,9 @@ def create_scheduled_meeting(
         title=payload.title,
         description=payload.description,
         meeting_type="scheduled",
-        scheduled_at=payload.scheduled_at,
+        # Store the user's local time as-is (no UTC conversion).
+        # Frontend sends datetime-local value directly to avoid timezone offset errors.
+        scheduled_at=payload.scheduled_at.replace(tzinfo=None),
         duration_minutes=payload.duration_minutes,
         status="scheduled",
         created_at=now
@@ -293,3 +295,38 @@ def remove_participant(
     db.commit()
 
     return {"message": f"Participant {participant_id} successfully removed from meeting."}
+
+
+@router.post("/{meeting_code}/cancel", response_model=schemas.MeetingResponse)
+def cancel_meeting(
+    meeting_code: str,
+    db: Session = Depends(get_db)
+):
+    """
+    Cancel a scheduled meeting that hasn't started yet.
+    Only meetings with status='scheduled' can be cancelled.
+    """
+    meeting = (
+        db.query(models.Meeting)
+        .filter(models.Meeting.meeting_code == meeting_code)
+        .first()
+    )
+
+    if not meeting:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"Meeting '{meeting_code}' not found."
+        )
+
+    if meeting.status != "scheduled":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Only scheduled meetings can be cancelled. Current status: '{meeting.status}'."
+        )
+
+    meeting.status = "cancelled"
+    db.commit()
+    db.refresh(meeting)
+
+    return meeting
+

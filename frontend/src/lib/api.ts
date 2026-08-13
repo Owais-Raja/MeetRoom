@@ -82,7 +82,6 @@ export const api = {
       body: JSON.stringify({ name }),
     }),
 
-
   // Fetch upcoming scheduled meetings
   getUpcomingMeetings: (): Promise<Meeting[]> => fetchAPI<Meeting[]>("/api/meetings/upcoming"),
 
@@ -118,7 +117,6 @@ export const api = {
       body: JSON.stringify({ display_name: displayName, host_token: hostToken }),
     }),
 
-
   // Host ends meeting for all participants
   endMeeting: (code: string): Promise<Meeting> =>
     fetchAPI<Meeting>(`/api/meetings/${code}/end`, {
@@ -129,6 +127,12 @@ export const api = {
   removeParticipant: (code: string, participantId: number): Promise<void> =>
     fetchAPI<void>(`/api/meetings/${code}/participants/${participantId}`, {
       method: "DELETE",
+    }),
+
+  // Cancel a scheduled meeting (before it starts)
+  cancelMeeting: (code: string): Promise<Meeting> =>
+    fetchAPI<Meeting>(`/api/meetings/${code}/cancel`, {
+      method: "POST",
     }),
 
   // The backend keeps the TURN provider API key private and returns only

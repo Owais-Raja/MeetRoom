@@ -42,8 +42,11 @@ export default function SchedulePage() {
     setError(null);
 
     try {
-      // Convert datetime-local string to ISO timestamp
-      const scheduledDateISO = new Date(scheduledAt).toISOString();
+      // Send the datetime-local string directly (no UTC conversion).
+      // The browser's datetime-local input gives us YYYY-MM-DDTHH:mm in LOCAL time.
+      // Appending ':00' makes it a valid ISO 8601 local datetime that FastAPI
+      // will parse as-is (treated as UTC on the server, matching what the user intended).
+      const scheduledDateISO = scheduledAt.length === 16 ? `${scheduledAt}:00` : scheduledAt;
 
       const newMeeting = await api.scheduleMeeting({
         title: title.trim(),
@@ -61,7 +64,7 @@ export default function SchedulePage() {
 
     } catch (err: any) {
       console.error("Failed to schedule meeting:", err);
-      setError("Error scheduling meeting. Make sure FastAPI backend is running.");
+      setError(`Error scheduling meeting: ${err?.message || err}`);
     } finally {
       setLoading(false);
     }
