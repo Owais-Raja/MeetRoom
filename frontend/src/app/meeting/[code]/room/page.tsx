@@ -135,9 +135,11 @@ export default function MeetingRoomPage({ params }: RoomProps) {
   const localVideoRef = useRef<HTMLVideoElement>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
 
-  // Mesh Topology: Map of active PeerConnections & Remote Peers state
+  // Mesh Topology: Map of active PeerConnections, Pending ICE Candidates & Remote Peers state
   const pcsRef = useRef<Map<string, RTCPeerConnection>>(new Map());
+  const pendingCandidatesRef = useRef<Map<string, RTCIceCandidateInit[]>>(new Map());
   const [remotePeers, setRemotePeers] = useState<RemotePeer[]>([]);
+
 
   const signalingClientRef = useRef<SignalingClient | null>(null);
 
@@ -308,6 +310,17 @@ export default function MeetingRoomPage({ params }: RoomProps) {
             sdp: answer,
             displayName: name,
           });
+
+          // Flush any early-arrived ICE candidates stored in queue for this peer
+          const pending = pendingCandidatesRef.current.get(from) || [];
+          for (const cand of pending) {
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(cand));
+            } catch (e) {
+              console.warn("[Mesh WebRTC] Error adding queued candidate:", e);
+            }
+          }
+          pendingCandidatesRef.current.delete(from);
         }
         break;
       }
@@ -317,23 +330,40 @@ export default function MeetingRoomPage({ params }: RoomProps) {
         if (pc && pc.signalingState === "have-local-offer") {
           console.log(`[Mesh WebRTC] Received answer from '${from}'. Setting remote description...`);
           await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
+
+          // Flush any early-arrived ICE candidates stored in queue for this peer
+          const pending = pendingCandidatesRef.current.get(from) || [];
+          for (const cand of pending) {
+            try {
+              await pc.addIceCandidate(new RTCIceCandidate(cand));
+            } catch (e) {
+              console.warn("[Mesh WebRTC] Error adding queued candidate:", e);
+            }
+          }
+          pendingCandidatesRef.current.delete(from);
         }
         break;
       }
 
       case "ice-candidate": {
         const pc = pcsRef.current.get(from);
-        if (pc && payload.candidate) {
-          try {
-            if (pc.remoteDescription && pc.remoteDescription.type) {
+        if (payload.candidate) {
+          if (pc && pc.remoteDescription && pc.remoteDescription.type) {
+            try {
               await pc.addIceCandidate(new RTCIceCandidate(payload.candidate));
+            } catch (e) {
+              console.error("Error adding ICE candidate:", e);
             }
-          } catch (e) {
-            console.error("Error adding ICE candidate:", e);
+          } else {
+            // Buffer candidate if remoteDescription has not been set yet
+            const queue = pendingCandidatesRef.current.get(from) || [];
+            queue.push(payload.candidate);
+            pendingCandidatesRef.current.set(from, queue);
           }
         }
         break;
       }
+
 
       case "leave": {
         console.log(`[Mesh WebRTC] Peer '${from}' left room.`);
