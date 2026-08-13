@@ -23,8 +23,8 @@ import {
 } from "lucide-react";
 import { api, Meeting } from "@/lib/api";
 import { SignalingClient, SignalingMessage } from "@/lib/signaling";
-import { createPeerConnection, getIceConfiguration } from "@/lib/webrtc";
 import ShareMeetingModal from "@/components/ShareMeetingModal";
+import { createPeerConnection, getIceConfiguration } from "@/lib/webrtc";
 
 interface RemotePeer {
   peerId: string;
@@ -38,6 +38,45 @@ interface ChatMessage {
   text: string;
   timestamp: string;
   isSelf: boolean;
+}
+
+interface RoomProps {
+  params: Promise<{ code: string }>;
+}
+
+/**
+ * Sub-component for rendering individual remote participant video & audio tiles in the mesh grid.
+ */
+function RemoteVideoTile({ peer }: { peer: RemotePeer }) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    if (videoRef.current && peer.stream) {
+      videoRef.current.srcObject = peer.stream;
+      videoRef.current.play().catch((err) => {
+        console.warn(`[WebRTC Media Play Error] Peer ${peer.peerId}:`, err);
+      });
+    }
+  }, [peer.stream]);
+
+  return (
+    <div className="relative w-full h-full min-h-[240px] sm:min-h-[280px] bg-gray-900 rounded-2xl border border-gray-800 shadow-xl overflow-hidden flex items-center justify-center">
+      <video
+        ref={videoRef}
+        autoPlay
+        playsInline
+        className="w-full h-full object-cover"
+      />
+      <div className="absolute bottom-3 left-3 bg-black/75 backdrop-blur-sm px-3 py-1 rounded-lg border border-white/10 text-xs font-medium text-white flex items-center gap-2">
+        <span>{peer.displayName || "Participant"}</span>
+        <Mic className="w-3.5 h-3.5 text-green-400" />
+      </div>
+    </div>
+  );
+}
+
+export default function MeetingRoomPage({ params }: RoomProps) {
+  const { code } = use(params);
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -643,8 +682,9 @@ interface ChatMessage {
               <span>Host</span>
             </span>
           )}
-          <span className="text-xs px-2.5 py-1 bg-gray-800 text-gray-300 rounded-lg font-medium border border-gray-700">
-            {totalCount} Active
+          <span className="text-xs px-3 py-1 bg-gray-800/90 text-gray-200 rounded-lg font-medium border border-gray-700/80 flex items-center space-x-1.5">
+            <Users className="w-3.5 h-3.5 text-blue-400" />
+            <span>Participants ({totalCount})</span>
           </span>
         </div>
       </header>

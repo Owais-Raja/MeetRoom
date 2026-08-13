@@ -47,8 +47,9 @@ export default function Home() {
     : "— — —";
 
   const handleCopyPMI = () => {
-    if (personalMeetingId !== "— — —") {
-      navigator.clipboard.writeText(personalMeetingId.replace(/\s/g, ""));
+    if (typeof window !== "undefined") {
+      const link = `${window.location.origin}/join`;
+      navigator.clipboard.writeText(link);
       setCopiedPMI(true);
       setTimeout(() => setCopiedPMI(false), 2000);
     }
@@ -175,23 +176,37 @@ export default function Home() {
 
                 {/* Personal Meeting ID */}
                 <div className="border-t border-gray-100 pt-3 sm:pt-4">
-                  <p className="text-xs sm:text-sm font-semibold text-gray-900 mb-1">
-                    Personal Meeting ID
-                  </p>
-                  <div className="flex items-center justify-between sm:justify-start gap-2 bg-gray-50 sm:bg-transparent p-2 sm:p-0 rounded-lg">
-                    <span className="text-xs sm:text-sm text-gray-600 font-mono tracking-wide">
+                  <div className="flex items-center justify-between mb-1">
+                    <p className="text-xs sm:text-sm font-semibold text-gray-900">
+                      Personal Meeting ID
+                    </p>
+                    <button
+                      onClick={() => window.dispatchEvent(new CustomEvent("zoom:newmeeting"))}
+                      className="text-[11px] font-semibold px-2 py-0.5 rounded text-blue-600 bg-blue-50 hover:bg-blue-100 transition-colors cursor-pointer"
+                    >
+                      Start Room
+                    </button>
+                  </div>
+                  <div className="flex items-center justify-between bg-gray-50 p-2 rounded-lg border border-gray-100">
+                    <span className="text-xs sm:text-sm text-gray-700 font-mono font-medium tracking-wide">
                       {personalMeetingId}
                     </span>
                     <button
                       onClick={handleCopyPMI}
-                      className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0 p-1"
-                      title="Copy Meeting ID"
-                      aria-label="Copy personal meeting ID"
+                      className="text-gray-500 hover:text-gray-800 transition-colors flex items-center gap-1 text-[11px] font-medium px-2 py-1 bg-white border border-gray-200 rounded shadow-2xs cursor-pointer"
+                      title="Copy Join Link"
+                      aria-label="Copy personal meeting join link"
                     >
                       {copiedPMI ? (
-                        <Check className="w-3.5 h-3.5 text-green-500" />
+                        <>
+                          <Check className="w-3 h-3 text-green-500" />
+                          <span className="text-green-600">Copied</span>
+                        </>
                       ) : (
-                        <Copy className="w-3.5 h-3.5" />
+                        <>
+                          <Copy className="w-3 h-3 text-gray-400" />
+                          <span>Copy</span>
+                        </>
                       )}
                     </button>
                   </div>
