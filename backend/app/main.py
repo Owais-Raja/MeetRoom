@@ -7,7 +7,7 @@ from app.routers import users, meetings, signaling
 # Ensure tables exist on startup (seed script handles full table creation/reset)
 Base.metadata.create_all(bind=engine)
 
-# Auto-seed default user (id=1) on startup if missing (for production deployments)
+# Auto-seed database on startup if default user (id=1) is missing
 def ensure_default_user():
     from app.database import SessionLocal
     from app.models import User
@@ -15,15 +15,9 @@ def ensure_default_user():
     try:
         user = db.query(User).filter(User.id == 1).first()
         if not user:
-            default_u = User(
-                id=1,
-                name="Default User",
-                email="user@example.com",
-                avatar_url="https://api.dicebear.com/7.x/avataaars/svg?seed=Default"
-            )
-            db.add(default_u)
-            db.commit()
-            print("Auto-seeded default user (id=1) on startup.")
+            print("Database empty. Auto-running seed_database()...")
+            from seed import seed_database
+            seed_database()
     except Exception as e:
         db.rollback()
         print(f"Startup auto-seed warning: {e}")
@@ -74,3 +68,14 @@ def read_root():
         "service": "MeetRoom API",
         "docs_url": "/docs"
     }
+
+
+@app.get("/api/seed")
+def seed_endpoint():
+    """Trigger DB seed script remotely."""
+    try:
+        from seed import seed_database
+        seed_database()
+        return {"status": "success", "message": "Database seeded successfully!"}
+    except Exception as e:
+        return {"status": "error", "detail": str(e)}
