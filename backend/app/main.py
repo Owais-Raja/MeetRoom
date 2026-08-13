@@ -2,7 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.database import engine, Base
-from app.routers import users, meetings, signaling
+from app.routers import users, meetings, signaling, turn
 
 # Ensure tables exist on startup (seed script handles full table creation/reset)
 Base.metadata.create_all(bind=engine)
@@ -59,6 +59,7 @@ app.add_middleware(
 app.include_router(users.router)
 app.include_router(meetings.router)
 app.include_router(signaling.router)
+app.include_router(turn.router)
 
 
 @app.get("/")

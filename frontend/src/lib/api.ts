@@ -1,5 +1,5 @@
 const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || "https://meetroom-77y7.onrender.com";
-const API_BASE_URL = RAW_API_URL.replace(/\/+$/, "");
+export const API_BASE_URL = RAW_API_URL.replace(/\/+$/, "");
 
 export interface User {
   id: number;
@@ -130,4 +130,9 @@ export const api = {
     fetchAPI<void>(`/api/meetings/${code}/participants/${participantId}`, {
       method: "DELETE",
     }),
+
+  // The backend keeps the TURN provider API key private and returns only
+  // short-lived credentials that browsers may use to relay call media.
+  getTurnIceServers: (): Promise<{ iceServers: RTCIceServer[] }> =>
+    fetchAPI<{ iceServers: RTCIceServer[] }>("/api/turn-credentials"),
 };

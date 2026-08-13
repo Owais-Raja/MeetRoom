@@ -23,7 +23,7 @@ import {
 } from "lucide-react";
 import { api, Meeting } from "@/lib/api";
 import { SignalingClient, SignalingMessage } from "@/lib/signaling";
-import { createPeerConnection } from "@/lib/webrtc";
+import { createPeerConnection, getIceConfiguration } from "@/lib/webrtc";
 import ShareMeetingModal from "@/components/ShareMeetingModal";
 
 interface RemotePeer {
@@ -178,10 +178,14 @@ export default function MeetingRoomPage({ params }: RoomProps) {
           localVideoRef.current.srcObject = stream;
         }
 
+        // Obtain fresh TURN credentials before joining the signaling room, so
+        // every connection created for this call can relay media if NAT blocks P2P.
+        const iceConfiguration = await getIceConfiguration();
         const signaling = new SignalingClient(
           code,
           participantId,
-          (message: SignalingMessage) => handleSignalingMessage(message, stream)
+          (message: SignalingMessage) =>
+            handleSignalingMessage(message, stream, iceConfiguration)
         );
         signalingClientRef.current = signaling;
         signaling.connect();
@@ -211,7 +215,8 @@ export default function MeetingRoomPage({ params }: RoomProps) {
   const getOrCreatePeerConnection = (
     targetPeerId: string,
     targetDisplayName: string,
-    currentLocalStream: MediaStream | null
+    currentLocalStream: MediaStream | null,
+    iceConfiguration: RTCConfiguration
   ): RTCPeerConnection => {
     if (pcsRef.current.has(targetPeerId)) {
       return pcsRef.current.get(targetPeerId)!;
@@ -221,6 +226,7 @@ export default function MeetingRoomPage({ params }: RoomProps) {
     const pc = createPeerConnection(
       targetPeerId,
       currentLocalStream,
+      iceConfiguration,
       (candidate) => {
         signalingClientRef.current?.send("ice-candidate", targetPeerId, { candidate });
       },
@@ -264,7 +270,11 @@ export default function MeetingRoomPage({ params }: RoomProps) {
   };
 
   // 3. WebRTC Signaling Message Handler (including Chat & Host Controls)
-  const handleSignalingMessage = async (msg: SignalingMessage, currentLocalStream: MediaStream | null) => {
+  const handleSignalingMessage = async (
+    msg: SignalingMessage,
+    currentLocalStream: MediaStream | null,
+    iceConfiguration: RTCConfiguration
+  ) => {
     const { type, from, to, payload } = msg;
 
     if (from === participantId) return;
@@ -274,7 +284,7 @@ export default function MeetingRoomPage({ params }: RoomProps) {
     switch (type) {
       case "join": {
         console.log(`[Mesh WebRTC] Peer '${from}' (${peerName}) joined room. Creating offer...`);
-        const pc = getOrCreatePeerConnection(from, peerName, currentLocalStream);
+        const pc = getOrCreatePeerConnection(from, peerName, currentLocalStream, iceConfiguration);
 
         if (pc.signalingState === "stable") {
           const offer = await pc.createOffer();
@@ -290,7 +300,7 @@ export default function MeetingRoomPage({ params }: RoomProps) {
 
       case "offer": {
         console.log(`[Mesh WebRTC] Received offer from '${from}' (${peerName}). Creating answer...`);
-        const pc = getOrCreatePeerConnection(from, peerName, currentLocalStream);
+        const pc = getOrCreatePeerConnection(from, peerName, currentLocalStream, iceConfiguration);
         updatePeerDisplayName(from, peerName);
 
         if (pc.signalingState === "stable" || pc.signalingState === "have-local-offer") {

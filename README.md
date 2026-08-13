@@ -18,7 +18,7 @@ A full-stack video meeting platform built for high-quality real-time peer-to-pee
 - **Backend**: FastAPI (Python 3.10+), Uvicorn ASGI Web Server
 - **Database**: SQLite with SQLAlchemy 2.0 ORM & Pydantic v2 data validation
 - **Real-Time Communication**: Native Browser WebRTC (`RTCPeerConnection`, `MediaStream`) with FastAPI WebSocket Signaling (`/ws/meetings/{code}`)
-- **NAT Traversal & Relaying**: Redundant Public STUN & TURN Servers (`stun:stun.l.google.com:19302`, `turn:openrelay.metered.ca`) for cross-network and mobile connectivity.
+- **NAT Traversal & Relaying**: Public STUN plus authenticated, short-lived TURN credentials for dependable cross-network and mobile connectivity.
 - **In-Call Screen Sharing**: Real-time browser display capture (`getDisplayMedia`) with seamless WebRTC video track replacement.
 - **In-Call Real-Time Chat**: Slide-over chat drawer with unread message counter badge and WebSocket messaging relay.
 - **Host Authorization (`host_token`)**: Cryptographic secret token generated on meeting creation to enforce host privileges regardless of user display name.
@@ -98,6 +98,7 @@ A full-stack video meeting platform built for high-quality real-time peer-to-pee
 | `POST` | `/api/meetings/{meeting_code}/join` | Validate code and register participant join |
 | `POST` | `/api/meetings/{meeting_code}/end` | Host ends meeting for all participants |
 | `DELETE` | `/api/meetings/{meeting_code}/participants/{id}` | Host removes a participant |
+| `GET` | `/api/turn-credentials` | Returns short-lived TURN configuration for the browser; the provider API key stays on the backend |
 
 ### WebSocket Endpoint
 | Protocol | Path | Purpose |
@@ -145,6 +146,19 @@ npm install
 # Start Next.js development server
 npm run dev
 ```
+
+### 3. Required Cross-Network TURN Setup
+
+Same-Wi-Fi calls can connect directly. Calls between different Wi-Fi, mobile, or corporate networks require a TURN relay.
+
+1. Create a free Metered TURN/Open Relay account and copy its TURN credentials API URL.
+2. In the Render service environment variables, set `TURN_CREDENTIALS_URL` to:
+   ```text
+   https://<your-app>.metered.live/api/v1/turn/credentials?apiKey=<your-api-key>
+   ```
+3. Redeploy Render. The backend keeps this URL and API key private, and browsers receive only short-lived TURN credentials through `/api/turn-credentials`.
+
+Verify the setup by opening `https://meetroom-77y7.onrender.com/api/turn-credentials`. It should return an `iceServers` array rather than a 503 error. Do not add this secret to Vercel or any `NEXT_PUBLIC_*` variable.
 
 ---
 
