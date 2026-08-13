@@ -38,46 +38,6 @@ interface ChatMessage {
   text: string;
   timestamp: string;
   isSelf: boolean;
-}
-
-interface RoomProps {
-  params: Promise<{ code: string }>;
-}
-
-/**
- * Sub-component for rendering individual remote participant video & audio tiles in the mesh grid.
- */
-function RemoteVideoTile({ peer }: { peer: RemotePeer }) {
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    if (videoRef.current && peer.stream) {
-      videoRef.current.srcObject = peer.stream;
-      videoRef.current.play().catch((err) => {
-        console.warn(`[WebRTC Media Play Error] Peer ${peer.peerId}:`, err);
-      });
-    }
-  }, [peer.stream]);
-
-  return (
-    <div className="relative w-full h-full min-h-[260px] bg-zinc-900 rounded-3xl border border-zinc-800 shadow-2xl overflow-hidden flex items-center justify-center">
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        className="w-full h-full object-cover"
-      />
-      <div className="absolute bottom-4 left-4 bg-zinc-950/80 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-zinc-800 text-xs font-medium flex items-center space-x-2">
-        <span>{peer.displayName || "Participant"}</span>
-        <Mic className="w-3.5 h-3.5 text-emerald-400" />
-      </div>
-    </div>
-  );
-}
-
-
-export default function MeetingRoomPage({ params }: RoomProps) {
-  const { code } = use(params);
   const searchParams = useSearchParams();
   const router = useRouter();
 
@@ -648,22 +608,22 @@ export default function MeetingRoomPage({ params }: RoomProps) {
   return (
     <main className="min-h-screen bg-zinc-950 text-white flex flex-col h-screen overflow-hidden relative">
       {/* Header */}
-      <header className="flex items-center justify-between px-6 py-3 bg-zinc-900 border-b border-zinc-800 z-10">
+      <header className="flex items-center justify-between px-4 sm:px-6 py-2.5 bg-[#18181B] border-b border-gray-800 z-10">
         <div className="flex items-center space-x-3">
-          <div className="bg-emerald-500/10 p-2 rounded-xl border border-emerald-500/20 text-emerald-400">
-            <ShieldCheck className="w-5 h-5" />
+          <div className="p-1.5 rounded-lg bg-green-500/10 text-green-500 border border-green-500/20 flex items-center justify-center">
+            <ShieldCheck className="w-4 h-4" />
           </div>
           <div>
-            <h1 className="font-semibold text-sm">{meeting ? meeting.title : "Meeting Room"}</h1>
-            <div className="flex items-center space-x-2 text-xs text-zinc-400">
-              <span>Code: <code className="text-blue-400 font-mono">{code}</code></span>
+            <h1 className="font-semibold text-xs sm:text-sm text-gray-100">{meeting ? meeting.title : "Meeting Room"}</h1>
+            <div className="flex items-center space-x-2 text-[11px] sm:text-xs text-gray-400">
+              <span>ID: <code className="text-gray-200 font-mono font-semibold">{code}</code></span>
               <button
                 onClick={() => setIsShareModalOpen(true)}
-                className="p-1 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded transition-colors flex items-center space-x-1 text-[11px]"
+                className="px-2 py-0.5 hover:text-white bg-gray-800 hover:bg-gray-700 text-gray-300 rounded transition-colors flex items-center space-x-1 text-[11px]"
                 title="Share Meeting Link"
               >
                 <Share2 className="w-3 h-3 text-blue-400" />
-                <span>Share</span>
+                <span>Invite</span>
               </button>
             </div>
           </div>
@@ -671,20 +631,20 @@ export default function MeetingRoomPage({ params }: RoomProps) {
 
         <div className="flex items-center space-x-2">
           {isScreenSharing && (
-            <span className="text-xs px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full font-medium border border-blue-500/30 flex items-center space-x-1 animate-pulse">
+            <span className="text-xs px-2.5 py-1 bg-blue-500/20 text-blue-400 rounded-lg font-medium border border-blue-500/30 flex items-center space-x-1 animate-pulse">
               <MonitorUp className="w-3.5 h-3.5" />
-              <span>Sharing Screen</span>
+              <span className="hidden sm:inline">Sharing Screen</span>
             </span>
           )}
 
           {isHost && (
-            <span className="text-xs px-3 py-1 bg-amber-500/10 text-amber-400 rounded-full font-medium border border-amber-500/20 flex items-center space-x-1">
+            <span className="text-xs px-2.5 py-1 bg-amber-500/10 text-amber-400 rounded-lg font-medium border border-amber-500/20 flex items-center space-x-1">
               <Crown className="w-3.5 h-3.5" />
               <span>Host</span>
             </span>
           )}
-          <span className="text-xs px-3 py-1 bg-emerald-500/10 text-emerald-400 rounded-full font-medium border border-emerald-500/20">
-            Mesh Call ({totalCount} Active)
+          <span className="text-xs px-2.5 py-1 bg-gray-800 text-gray-300 rounded-lg font-medium border border-gray-700">
+            {totalCount} Active
           </span>
         </div>
       </header>
@@ -899,17 +859,17 @@ export default function MeetingRoomPage({ params }: RoomProps) {
       </div>
 
       {/* Control Bar */}
-      <footer className="px-6 py-4 bg-zinc-900 border-t border-zinc-800 flex items-center justify-between z-10">
-        <div className="flex items-center space-x-3">
+      <footer className="px-4 sm:px-6 py-3 bg-[#18181B] border-t border-gray-800 flex items-center justify-between z-10">
+        <div className="flex items-center space-x-2 sm:space-x-3">
           <button
             onClick={toggleAudio}
-            className={`p-3.5 rounded-2xl transition-all flex items-center space-x-2 ${
+            className={`p-2.5 sm:px-4 sm:py-2.5 rounded-xl transition-all flex items-center space-x-2 cursor-pointer ${
               isMuted
                 ? "bg-red-600 text-white hover:bg-red-700"
-                : "bg-zinc-800 text-zinc-200 hover:bg-zinc-700"
+                : "bg-gray-800 text-gray-200 hover:bg-gray-700"
             }`}
           >
-            {isMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+            {isMuted ? <MicOff className="w-4 h-4 sm:w-5 sm:h-5 text-red-200" /> : <Mic className="w-4 h-4 sm:w-5 sm:h-5 text-gray-200" />}
             <span className="text-xs font-medium hidden sm:inline">
               {isMuted ? "Unmute" : "Mute"}
             </span>
@@ -917,13 +877,13 @@ export default function MeetingRoomPage({ params }: RoomProps) {
 
           <button
             onClick={toggleVideo}
-            className={`p-3.5 rounded-2xl transition-all flex items-center space-x-2 ${
+            className={`p-2.5 sm:px-4 sm:py-2.5 rounded-xl transition-all flex items-center space-x-2 cursor-pointer ${
               isVideoOff
                 ? "bg-red-600 text-white hover:bg-red-700"
-                : "bg-zinc-800 text-zinc-200 hover:bg-zinc-700"
+                : "bg-gray-800 text-gray-200 hover:bg-gray-700"
             }`}
           >
-            {isVideoOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+            {isVideoOff ? <VideoOff className="w-4 h-4 sm:w-5 sm:h-5 text-red-200" /> : <Video className="w-4 h-4 sm:w-5 sm:h-5 text-gray-200" />}
             <span className="text-xs font-medium hidden sm:inline">
               {isVideoOff ? "Start Video" : "Stop Video"}
             </span>
@@ -932,33 +892,33 @@ export default function MeetingRoomPage({ params }: RoomProps) {
           {/* Screen Share Button */}
           <button
             onClick={toggleScreenShare}
-            className={`p-3.5 rounded-2xl transition-all flex items-center space-x-2 ${
+            className={`p-2.5 sm:px-4 sm:py-2.5 rounded-xl transition-all flex items-center space-x-2 cursor-pointer ${
               isScreenSharing
-                ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg"
-                : "bg-zinc-800 text-zinc-200 hover:bg-zinc-700"
+                ? "bg-blue-600 text-white hover:bg-blue-700 shadow-md"
+                : "bg-gray-800 text-gray-200 hover:bg-gray-700"
             }`}
             title={isScreenSharing ? "Stop Sharing Screen" : "Share Screen"}
           >
-            <MonitorUp className="w-5 h-5" />
+            <MonitorUp className="w-4 h-4 sm:w-5 sm:h-5" />
             <span className="text-xs font-medium hidden sm:inline">
               {isScreenSharing ? "Stop Share" : "Share Screen"}
             </span>
           </button>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex items-center space-x-2 sm:space-x-3">
           <button
             onClick={() => {
               setIsParticipantsOpen(!isParticipantsOpen);
               if (isChatOpen) setIsChatOpen(false);
             }}
-            className={`p-3.5 rounded-2xl transition-colors flex items-center space-x-1.5 ${
+            className={`p-2.5 sm:px-4 sm:py-2.5 rounded-xl transition-colors flex items-center space-x-1.5 cursor-pointer ${
               isParticipantsOpen
                 ? "bg-blue-600 text-white"
-                : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+                : "bg-gray-800 hover:bg-gray-700 text-gray-300"
             }`}
           >
-            <Users className="w-5 h-5" />
+            <Users className="w-4 h-4 sm:w-5 sm:h-5" />
             <span className="text-xs font-medium">{totalCount}</span>
           </button>
 
@@ -968,16 +928,16 @@ export default function MeetingRoomPage({ params }: RoomProps) {
               setUnreadCount(0);
               if (isParticipantsOpen) setIsParticipantsOpen(false);
             }}
-            className={`p-3.5 rounded-2xl transition-colors relative ${
+            className={`p-2.5 sm:px-4 sm:py-2.5 rounded-xl transition-colors relative cursor-pointer ${
               isChatOpen
                 ? "bg-blue-600 text-white"
-                : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+                : "bg-gray-800 hover:bg-gray-700 text-gray-300"
             }`}
             title="In-Call Chat"
           >
-            <MessageSquare className="w-5 h-5" />
+            <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5" />
             {unreadCount > 0 && (
-              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center animate-bounce">
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-4 h-4 rounded-full flex items-center justify-center animate-bounce">
                 {unreadCount}
               </span>
             )}
@@ -986,18 +946,18 @@ export default function MeetingRoomPage({ params }: RoomProps) {
           {isHost ? (
             <button
               onClick={handleEndMeetingForAll}
-              className="px-5 py-3.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-2xl shadow-lg transition-all flex items-center space-x-2"
+              className="px-3 sm:px-5 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl shadow-md transition-all flex items-center space-x-1.5 cursor-pointer text-xs sm:text-sm"
             >
-              <PhoneOff className="w-5 h-5" />
-              <span className="text-sm font-medium">End Meeting for All</span>
+              <PhoneOff className="w-4 h-4" />
+              <span>End All</span>
             </button>
           ) : (
             <button
               onClick={handleLeaveCall}
-              className="px-6 py-3.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-2xl shadow-lg transition-all flex items-center space-x-2"
+              className="px-4 sm:px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl shadow-md transition-all flex items-center space-x-1.5 cursor-pointer text-xs sm:text-sm"
             >
-              <PhoneOff className="w-5 h-5" />
-              <span className="text-sm font-medium">Leave</span>
+              <PhoneOff className="w-4 h-4" />
+              <span>Leave</span>
             </button>
           )}
         </div>
