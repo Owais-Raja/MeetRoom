@@ -39,14 +39,13 @@ export function createPeerConnection(
     }
   };
 
-  // 3. Handle incoming remote media tracks -> attach to remote video element
-  const remoteStream = new MediaStream();
+  // 3. Handle incoming remote media tracks -> attach to remote video/audio elements
   pc.ontrack = (event) => {
-    event.streams[0].getTracks().forEach((track) => {
-      remoteStream.addTrack(track);
-    });
-    onRemoteStream(remoteStream);
+    console.log(`[WebRTC] Received remote track '${event.track.kind}' from peer '${peerId}'`);
+    const stream = event.streams[0] || new MediaStream([event.track]);
+    onRemoteStream(stream);
   };
 
   return pc;
 }
+

@@ -45,14 +45,26 @@ interface RoomProps {
 }
 
 /**
- * Sub-component for rendering individual remote participant video tiles in the mesh grid.
+ * Sub-component for rendering individual remote participant video & audio tiles in the mesh grid.
  */
 function RemoteVideoTile({ peer }: { peer: RemotePeer }) {
   const videoRef = useRef<HTMLVideoElement>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
-    if (videoRef.current && peer.stream) {
-      videoRef.current.srcObject = peer.stream;
+    if (peer.stream) {
+      if (videoRef.current) {
+        videoRef.current.srcObject = peer.stream;
+        videoRef.current.play().catch((err) => {
+          console.warn(`[WebRTC Video] Play error for peer ${peer.peerId}:`, err);
+        });
+      }
+      if (audioRef.current) {
+        audioRef.current.srcObject = peer.stream;
+        audioRef.current.play().catch((err) => {
+          console.warn(`[WebRTC Audio] Play error for peer ${peer.peerId}:`, err);
+        });
+      }
     }
   }, [peer.stream]);
 
@@ -63,6 +75,11 @@ function RemoteVideoTile({ peer }: { peer: RemotePeer }) {
         autoPlay
         playsInline
         className="w-full h-full object-cover"
+      />
+      <audio
+        ref={audioRef}
+        autoPlay
+        playsInline
       />
       <div className="absolute bottom-4 left-4 bg-zinc-950/80 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-zinc-800 text-xs font-medium flex items-center space-x-2">
         <span>{peer.displayName || "Participant"}</span>
@@ -155,7 +172,11 @@ export default function MeetingRoomPage({ params }: RoomProps) {
       try {
         const stream = await navigator.mediaDevices.getUserMedia({
           video: true,
-          audio: true,
+          audio: {
+            echoCancellation: true,
+            noiseSuppression: true,
+            autoGainControl: true,
+          },
         });
 
         stream.getAudioTracks().forEach((t) => (t.enabled = initialMic));
@@ -207,9 +228,10 @@ export default function MeetingRoomPage({ params }: RoomProps) {
       return pcsRef.current.get(targetPeerId)!;
     }
 
+    // ALWAYS pass currentLocalStream to createPeerConnection to ensure audio tracks are added
     const pc = createPeerConnection(
       targetPeerId,
-      screenStreamRef.current || currentLocalStream,
+      currentLocalStream,
       (candidate) => {
         signalingClientRef.current?.send("ice-candidate", targetPeerId, { candidate });
       },
@@ -228,9 +250,22 @@ export default function MeetingRoomPage({ params }: RoomProps) {
       }
     );
 
+    // If screen sharing is active when establishing peer connection, replace video track sender
+    if (screenStreamRef.current) {
+      const screenTrack = screenStreamRef.current.getVideoTracks()[0];
+      if (screenTrack) {
+        const senders = pc.getSenders();
+        const videoSender = senders.find((s) => s.track && s.track.kind === "video");
+        if (videoSender) {
+          videoSender.replaceTrack(screenTrack);
+        }
+      }
+    }
+
     pcsRef.current.set(targetPeerId, pc);
     return pc;
   };
+
 
   // 3. WebRTC Signaling Message Handler (including Chat & Host Controls)
   const handleSignalingMessage = async (msg: SignalingMessage, currentLocalStream: MediaStream | null) => {
