@@ -39,6 +39,7 @@ export function createPeerConnection(
   onRemoteStream: (stream: MediaStream) => void
 ): RTCPeerConnection {
   const pc = new RTCPeerConnection(RTC_CONFIGURATION);
+  const remoteStream = new MediaStream();
 
   // 1. Add all active local media tracks (Audio + Video) to the Peer Connection
   if (localStream) {
@@ -56,12 +57,22 @@ export function createPeerConnection(
 
   // 3. Handle incoming remote media tracks -> attach to remote video element
   pc.ontrack = (event) => {
-    console.log(`[WebRTC] Received remote track '${event.track.kind}' from peer '${peerId}'`, event.streams);
+    console.log(`[WebRTC] Received remote track '${event.track.kind}' from peer '${peerId}'`);
+    
     if (event.streams && event.streams[0]) {
-      onRemoteStream(event.streams[0]);
+      event.streams[0].getTracks().forEach((track) => {
+        if (!remoteStream.getTracks().some((t) => t.id === track.id)) {
+          remoteStream.addTrack(track);
+        }
+      });
     } else if (event.track) {
-      onRemoteStream(new MediaStream([event.track]));
+      if (!remoteStream.getTracks().some((t) => t.id === event.track.id)) {
+        remoteStream.addTrack(event.track);
+      }
     }
+
+    // Always output a fresh MediaStream wrapper so React detects reference changes and updates video elements
+    onRemoteStream(new MediaStream(remoteStream.getTracks()));
   };
 
   return pc;
