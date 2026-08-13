@@ -1,0 +1,93 @@
+# --- Python -------------------------------------------------------------------
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+*.egg
+*.egg-info/
+dist/
+build/
+eggs/
+parts/
+var/
+sdist/
+develop-eggs/
+.installed.cfg
+lib/
+lib64/
+wheels/
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+env/
+.env.bak
+
+# pytest / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+nosetests.xml
+coverage.xml
+*.cover
+
+# mypy / type checkers
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+
+# --- Node / Next.js -----------------------------------------------------------
+node_modules/
+.next/
+out/
+.nuxt/
+.cache/
+.parcel-cache/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.pnpm-store/
+*.tsbuildinfo
+
+# --- Environment & secrets ----------------------------------------------------
+.env
+.env.local
+.env.*.local
+
+# --- Database -----------------------------------------------------------------
+*.db
+*.sqlite
+*.sqlite3
+meetroom.db
+
+# --- Editor / OS --------------------------------------------------------------
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Logs ---------------------------------------------------------------------
+logs/
+*.log
+
+# --- Internal dev tracking (not for GitHub) -----------------------------------
+context.md
+LOG.md
+AGENTS.md
+CLAUDE.md
+
+# --- Misc ---------------------------------------------------------------------
+.vercel/
+.netlify/
