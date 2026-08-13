@@ -15,13 +15,22 @@ app = FastAPI(
 
 import os
 
-# Configurable CORS origins (reads ALLOWED_ORIGINS env var with fallback)
-raw_origins = os.getenv("ALLOWED_ORIGINS", "http://localhost:3000,http://127.0.0.1:3000,*")
+# Configurable CORS origins (always includes Vercel app domain and local dev)
+raw_origins = os.getenv("ALLOWED_ORIGINS", "")
 origins = [origin.strip() for origin in raw_origins.split(",") if origin.strip()]
+default_origins = [
+    "https://meetroom-scaler.vercel.app",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+]
+for o in default_origins:
+    if o not in origins:
+        origins.append(o)
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
+    allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

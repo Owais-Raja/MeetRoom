@@ -15,9 +15,9 @@ export default function ActionButtons() {
     try {
       const newMeeting = await api.createInstantMeeting("Instant Meeting");
       router.push(`/meeting/${newMeeting.meeting_code}`);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to create instant meeting:", err);
-      alert("Error starting instant meeting. Please verify your backend server connection.");
+      alert(`Error starting instant meeting:\n${err?.message || err}`);
     } finally {
       setCreating(false);
     }

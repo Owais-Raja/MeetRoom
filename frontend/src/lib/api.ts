@@ -1,5 +1,5 @@
-// Base API URL for FastAPI backend
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
+const RAW_API_URL = process.env.NEXT_PUBLIC_API_URL || "https://meetroom-77y7.onrender.com";
+const API_BASE_URL = RAW_API_URL.replace(/\/+$/, "");
 
 export interface User {
   id: number;
@@ -42,20 +42,28 @@ export interface Meeting {
  * Generic fetch wrapper for FastAPI backend API requests.
  */
 async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...options.headers,
-    },
-    ...options,
-  });
+  const cleanEndpoint = endpoint.startsWith("/") ? endpoint : `/${endpoint}`;
+  const url = `${API_BASE_URL}${cleanEndpoint}`;
 
-  if (!response.ok) {
-    const errorBody = await response.text();
-    throw new Error(`API Error ${response.status}: ${errorBody || response.statusText}`);
+  try {
+    const response = await fetch(url, {
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+      ...options,
+    });
+
+    if (!response.ok) {
+      const errorBody = await response.text();
+      throw new Error(`API ${response.status}: ${errorBody || response.statusText}`);
+    }
+
+    return response.json();
+  } catch (err: any) {
+    console.error(`[API Fetch Error] Failed requesting ${url}:`, err);
+    throw new Error(`Connecting to ${url} failed (${err.message || "Network Error"}).`);
   }
-
-  return response.json();
 }
 
 /**

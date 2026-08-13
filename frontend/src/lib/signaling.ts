@@ -30,7 +30,7 @@ export class SignalingClient {
 
   constructor(meetingCode: string, participantId: string, onMessage: MessageHandler) {
     const wsProtocol = window.location.protocol === "https:" ? "wss:" : "ws:";
-    const host = process.env.NEXT_PUBLIC_WS_HOST || "localhost:8000";
+    const host = process.env.NEXT_PUBLIC_WS_HOST || "meetroom-77y7.onrender.com";
     this.url = `${wsProtocol}//${host}/ws/meetings/${meetingCode}?participant_id=${encodeURIComponent(
       participantId
     )}`;
