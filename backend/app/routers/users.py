@@ -20,3 +20,30 @@ def get_current_user(db: Session = Depends(get_db)):
             detail="Default user not found. Please run the database seed script (seed.py)."
         )
     return user
+
+
+@router.put("/me", response_model=schemas.UserResponse)
+def update_current_user(
+    payload: schemas.UserUpdate,
+    db: Session = Depends(get_db)
+):
+    """
+    Updates the default logged-in user's profile (e.g. display name).
+    """
+    user = db.query(models.User).filter(models.User.id == 1).first()
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Default user not found."
+        )
+    if payload.name is not None and payload.name.strip():
+        user.name = payload.name.strip()
+    if payload.email is not None and payload.email.strip():
+        user.email = payload.email.strip()
+    if payload.avatar_url is not None:
+        user.avatar_url = payload.avatar_url
+    
+    db.commit()
+    db.refresh(user)
+    return user
+

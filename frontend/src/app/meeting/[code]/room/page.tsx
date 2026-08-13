@@ -15,15 +15,29 @@ import {
   UserX,
   X,
   Crown,
+  MonitorUp,
+  Share2,
+  Send,
+  Check,
+  Copy,
 } from "lucide-react";
 import { api, Meeting } from "@/lib/api";
 import { SignalingClient, SignalingMessage } from "@/lib/signaling";
 import { createPeerConnection } from "@/lib/webrtc";
+import ShareMeetingModal from "@/components/ShareMeetingModal";
 
 interface RemotePeer {
   peerId: string;
   displayName: string;
   stream: MediaStream;
+}
+
+interface ChatMessage {
+  id: string;
+  sender: string;
+  text: string;
+  timestamp: string;
+  isSelf: boolean;
 }
 
 interface RoomProps {
@@ -64,10 +78,20 @@ export default function MeetingRoomPage({ params }: RoomProps) {
   const router = useRouter();
 
   // Participant metadata & server-assigned role
-  const name = searchParams.get("name") || "Participant";
+  const rawName = searchParams.get("name") || "Participant";
   const role = searchParams.get("role") || "participant";
   const initialMic = searchParams.get("mic") !== "false";
   const initialCam = searchParams.get("cam") !== "false";
+
+  // Check saved display name if available
+  const [name, setName] = useState(rawName);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedName = localStorage.getItem("meetroom_user_name");
+      if (savedName) setName(savedName);
+    }
+  }, []);
+
   // Session participant ID
   const [participantId] = useState(() => `peer_${Math.random().toString(36).substring(2, 9)}`);
 
@@ -75,8 +99,20 @@ export default function MeetingRoomPage({ params }: RoomProps) {
   const [isMuted, setIsMuted] = useState(!initialMic);
   const [isVideoOff, setIsVideoOff] = useState(!initialCam);
 
-  // Participant panel state
+  // Screen sharing state
+  const [isScreenSharing, setIsScreenSharing] = useState(false);
+  const screenStreamRef = useRef<MediaStream | null>(null);
+
+  // Drawers state
   const [isParticipantsOpen, setIsParticipantsOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+
+  // Chat messages & input
+  const [chatMessages, setChatMessages] = useState<ChatMessage[]>([]);
+  const [chatInputText, setChatInputText] = useState("");
+  const [unreadCount, setUnreadCount] = useState(0);
+  const chatBottomRef = useRef<HTMLDivElement>(null);
 
   // Local media stream & video ref
   const localVideoRef = useRef<HTMLVideoElement>(null);
@@ -88,8 +124,15 @@ export default function MeetingRoomPage({ params }: RoomProps) {
 
   const signalingClientRef = useRef<SignalingClient | null>(null);
 
-  // Check if current user is the host (validated via server-assigned role)
+  // Check if current user is the host
   const isHost = role === "host";
+
+  // Auto-scroll chat to bottom
+  useEffect(() => {
+    if (isChatOpen) {
+      chatBottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [chatMessages, isChatOpen]);
 
   // 1. Fetch meeting metadata
   useEffect(() => {
@@ -140,6 +183,9 @@ export default function MeetingRoomPage({ params }: RoomProps) {
     setupCall();
 
     return () => {
+      if (screenStreamRef.current) {
+        screenStreamRef.current.getTracks().forEach((t) => t.stop());
+      }
       if (streamInstance) {
         streamInstance.getTracks().forEach((t) => t.stop());
       }
@@ -163,7 +209,7 @@ export default function MeetingRoomPage({ params }: RoomProps) {
 
     const pc = createPeerConnection(
       targetPeerId,
-      currentLocalStream,
+      screenStreamRef.current || currentLocalStream,
       (candidate) => {
         signalingClientRef.current?.send("ice-candidate", targetPeerId, { candidate });
       },
@@ -186,7 +232,7 @@ export default function MeetingRoomPage({ params }: RoomProps) {
     return pc;
   };
 
-  // 3. WebRTC Signaling Message Handler (including Host Controls)
+  // 3. WebRTC Signaling Message Handler (including Chat & Host Controls)
   const handleSignalingMessage = async (msg: SignalingMessage, currentLocalStream: MediaStream | null) => {
     const { type, from, to, payload } = msg;
 
@@ -199,7 +245,6 @@ export default function MeetingRoomPage({ params }: RoomProps) {
         console.log(`[Mesh WebRTC] Peer '${from}' (${peerName}) joined room. Creating offer...`);
         const pc = getOrCreatePeerConnection(from, peerName, currentLocalStream);
 
-        // Only create offer if we are in stable state
         if (pc.signalingState === "stable") {
           const offer = await pc.createOffer();
           await pc.setLocalDescription(offer);
@@ -216,10 +261,8 @@ export default function MeetingRoomPage({ params }: RoomProps) {
         console.log(`[Mesh WebRTC] Received offer from '${from}' (${peerName}). Creating answer...`);
         const pc = getOrCreatePeerConnection(from, peerName, currentLocalStream);
 
-        // Guard against SDP glare / wrong signaling state
         if (pc.signalingState === "stable" || pc.signalingState === "have-local-offer") {
           if (pc.signalingState === "have-local-offer") {
-            // Rollback local offer if we have an offer collision
             await pc.setLocalDescription({ type: "rollback" });
           }
           await pc.setRemoteDescription(new RTCSessionDescription(payload.sdp));
@@ -269,15 +312,48 @@ export default function MeetingRoomPage({ params }: RoomProps) {
       }
 
       // -----------------------------------------------------------------------
+      // REAL-TIME IN-CALL CHAT SIGNAL HANDLER
+      // -----------------------------------------------------------------------
+      case "chat": {
+        const { sender, text, timestamp } = payload;
+        setChatMessages((prev) => [
+          ...prev,
+          {
+            id: Math.random().toString(36).substring(2, 9),
+            sender: sender || "Participant",
+            text,
+            timestamp: timestamp || new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }),
+            isSelf: false,
+          },
+        ]);
+        if (!isChatOpen) {
+          setUnreadCount((prev) => prev + 1);
+        }
+        break;
+      }
+
+      // -----------------------------------------------------------------------
       // HOST CONTROL SIGNAL HANDLERS
       // -----------------------------------------------------------------------
       case "mute-all": {
         console.log("[Host Control] Host requested Mute All.");
-        if (currentLocalStream) {
-          currentLocalStream.getAudioTracks().forEach((t) => (t.enabled = false));
+        if (localStream) {
+          localStream.getAudioTracks().forEach((t) => (t.enabled = false));
         }
         setIsMuted(true);
         alert("The meeting host has muted all participants.");
+        break;
+      }
+
+      case "mute-participant": {
+        if (to === participantId) {
+          console.log("[Host Control] Host muted your microphone.");
+          if (localStream) {
+            localStream.getAudioTracks().forEach((t) => (t.enabled = false));
+          }
+          setIsMuted(true);
+          alert("The meeting host has muted your microphone.");
+        }
         break;
       }
 
@@ -317,10 +393,116 @@ export default function MeetingRoomPage({ params }: RoomProps) {
     setIsVideoOff(!isVideoOff);
   };
 
+  // Screen Sharing Logic
+  const startScreenShare = async () => {
+    try {
+      const displayStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: true,
+      });
+
+      screenStreamRef.current = displayStream;
+      const screenTrack = displayStream.getVideoTracks()[0];
+
+      // Handle user clicking native browser "Stop Sharing" floating button
+      screenTrack.onended = () => {
+        stopScreenShare();
+      };
+
+      // Replace local video sender track across all active RTCPeerConnections
+      pcsRef.current.forEach((pc) => {
+        const senders = pc.getSenders();
+        const videoSender = senders.find((s) => s.track && s.track.kind === "video");
+        if (videoSender) {
+          videoSender.replaceTrack(screenTrack);
+        }
+      });
+
+      // Update local preview video element
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = displayStream;
+      }
+
+      setIsScreenSharing(true);
+    } catch (err) {
+      console.warn("Screen share cancelled or failed:", err);
+    }
+  };
+
+  const stopScreenShare = () => {
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach((track) => track.stop());
+      screenStreamRef.current = null;
+    }
+
+    // Restore camera video track to peer connections
+    if (localStream) {
+      const cameraTrack = localStream.getVideoTracks()[0];
+      pcsRef.current.forEach((pc) => {
+        const senders = pc.getSenders();
+        const videoSender = senders.find((s) => s.track && s.track.kind === "video");
+        if (videoSender && cameraTrack) {
+          videoSender.replaceTrack(cameraTrack);
+        }
+      });
+
+      // Restore local preview element
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = localStream;
+      }
+    }
+
+    setIsScreenSharing(false);
+  };
+
+  const toggleScreenShare = () => {
+    if (isScreenSharing) {
+      stopScreenShare();
+    } else {
+      startScreenShare();
+    }
+  };
+
+  // In-Call Chat Sending
+  const handleSendMessage = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!chatInputText.trim()) return;
+
+    const timestamp = new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const text = chatInputText.trim();
+
+    // Broadcast chat message to peers via WebSocket signaling server
+    signalingClientRef.current?.send("chat", null, {
+      sender: name,
+      text,
+      timestamp,
+    });
+
+    // Append to local message history
+    setChatMessages((prev) => [
+      ...prev,
+      {
+        id: Math.random().toString(36).substring(2, 9),
+        sender: name,
+        text,
+        timestamp,
+        isSelf: true,
+      },
+    ]);
+
+    setChatInputText("");
+  };
+
   // Host Action: Mute All Participants
   const handleMuteAll = () => {
     if (!isHost) return;
     signalingClientRef.current?.send("mute-all", null);
+  };
+
+  // Host Action: Mute Specific Participant
+  const handleMuteSingleParticipant = (peerId: string) => {
+    if (!isHost) return;
+    signalingClientRef.current?.send("mute-participant", peerId);
   };
 
   // Host Action: Remove Specific Participant
@@ -354,6 +536,9 @@ export default function MeetingRoomPage({ params }: RoomProps) {
 
   // Leave Call
   const handleLeaveCall = () => {
+    if (screenStreamRef.current) {
+      screenStreamRef.current.getTracks().forEach((t) => t.stop());
+    }
     if (localStream) {
       localStream.getTracks().forEach((t) => t.stop());
     }
@@ -385,13 +570,28 @@ export default function MeetingRoomPage({ params }: RoomProps) {
           </div>
           <div>
             <h1 className="font-semibold text-sm">{meeting ? meeting.title : "Meeting Room"}</h1>
-            <p className="text-xs text-zinc-400">
-              Code: <code className="text-blue-400 font-mono">{code}</code>
-            </p>
+            <div className="flex items-center space-x-2 text-xs text-zinc-400">
+              <span>Code: <code className="text-blue-400 font-mono">{code}</code></span>
+              <button
+                onClick={() => setIsShareModalOpen(true)}
+                className="p-1 hover:text-white bg-zinc-800 hover:bg-zinc-700 rounded transition-colors flex items-center space-x-1 text-[11px]"
+                title="Share Meeting Link"
+              >
+                <Share2 className="w-3 h-3 text-blue-400" />
+                <span>Share</span>
+              </button>
+            </div>
           </div>
         </div>
 
         <div className="flex items-center space-x-2">
+          {isScreenSharing && (
+            <span className="text-xs px-3 py-1 bg-blue-500/20 text-blue-400 rounded-full font-medium border border-blue-500/30 flex items-center space-x-1 animate-pulse">
+              <MonitorUp className="w-3.5 h-3.5" />
+              <span>Sharing Screen</span>
+            </span>
+          )}
+
           {isHost && (
             <span className="text-xs px-3 py-1 bg-amber-500/10 text-amber-400 rounded-full font-medium border border-amber-500/20 flex items-center space-x-1">
               <Crown className="w-3.5 h-3.5" />
@@ -404,23 +604,23 @@ export default function MeetingRoomPage({ params }: RoomProps) {
         </div>
       </header>
 
-      {/* Main Grid Area & Slide-over Participants Drawer */}
+      {/* Main Grid Area & Slide-over Drawers */}
       <div className="flex-1 flex overflow-hidden relative">
         <div className="flex-1 p-6 flex items-center justify-center bg-zinc-950 overflow-y-auto">
           <div className={`grid ${gridColsClass} gap-6 w-full items-center justify-center`}>
-            {/* Local Video Tile */}
+            {/* Local Video / Screen Share Tile */}
             <div className="relative w-full h-full min-h-[260px] bg-zinc-900 rounded-3xl border border-zinc-800 shadow-2xl overflow-hidden flex items-center justify-center">
               <video
                 ref={localVideoRef}
                 autoPlay
                 playsInline
                 muted
-                className={`w-full h-full object-cover transform -scale-x-100 ${
-                  isVideoOff ? "hidden" : "block"
-                }`}
+                className={`w-full h-full object-cover ${
+                  isScreenSharing ? "" : "transform -scale-x-100"
+                } ${isVideoOff && !isScreenSharing ? "hidden" : "block"}`}
               />
 
-              {isVideoOff && (
+              {isVideoOff && !isScreenSharing && (
                 <div className="flex flex-col items-center justify-center space-y-3">
                   <div className="w-20 h-20 rounded-full bg-blue-600 flex items-center justify-center text-2xl font-bold text-white shadow-xl">
                     {name.charAt(0).toUpperCase()}
@@ -430,7 +630,7 @@ export default function MeetingRoomPage({ params }: RoomProps) {
               )}
 
               <div className="absolute bottom-4 left-4 bg-zinc-950/80 backdrop-blur-md px-3.5 py-1.5 rounded-full border border-zinc-800 text-xs font-medium flex items-center space-x-2">
-                <span>{name} (You)</span>
+                <span>{name} (You {isScreenSharing ? "• Presenting" : ""})</span>
                 {isMuted ? (
                   <MicOff className="w-3.5 h-3.5 text-red-400" />
                 ) : (
@@ -507,18 +707,97 @@ export default function MeetingRoomPage({ params }: RoomProps) {
                   <div className="flex items-center space-x-2">
                     <Mic className="w-4 h-4 text-emerald-400" />
                     {isHost && (
-                      <button
-                        onClick={() => handleRemoveParticipant(peer.peerId)}
-                        className="p-1 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
-                        title="Remove participant"
-                      >
-                        <UserX className="w-4 h-4" />
-                      </button>
+                      <>
+                        <button
+                          onClick={() => handleMuteSingleParticipant(peer.peerId)}
+                          className="p-1 text-amber-400 hover:bg-amber-500/10 rounded-lg transition-colors"
+                          title="Mute microphone"
+                        >
+                          <VolumeX className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => handleRemoveParticipant(peer.peerId)}
+                          className="p-1 text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                          title="Remove participant"
+                        >
+                          <UserX className="w-4 h-4" />
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
               ))}
             </div>
+          </aside>
+        )}
+
+        {/* Slide-Over In-Call Chat Drawer */}
+        {isChatOpen && (
+          <aside className="w-80 bg-zinc-900 border-l border-zinc-800 flex flex-col z-20 shadow-2xl">
+            <div className="p-4 border-b border-zinc-800 flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <MessageSquare className="w-5 h-5 text-blue-400" />
+                <h2 className="font-semibold text-sm">In-Call Chat</h2>
+              </div>
+              <button
+                onClick={() => setIsChatOpen(false)}
+                className="p-1 text-zinc-400 hover:text-white rounded-lg hover:bg-zinc-800 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+
+            {/* Chat Message Stream */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {chatMessages.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center text-zinc-500 space-y-2">
+                  <MessageSquare className="w-8 h-8 stroke-1 text-zinc-600" />
+                  <p className="text-xs">No messages yet.</p>
+                  <p className="text-[11px] text-zinc-600">Send a message to start chatting with meeting participants.</p>
+                </div>
+              ) : (
+                chatMessages.map((msg) => (
+                  <div
+                    key={msg.id}
+                    className={`flex flex-col ${msg.isSelf ? "items-end" : "items-start"}`}
+                  >
+                    <div className="flex items-center space-x-1.5 mb-1 text-[10px] text-zinc-400">
+                      <span className="font-semibold text-zinc-300">{msg.isSelf ? "You" : msg.sender}</span>
+                      <span>•</span>
+                      <span>{msg.timestamp}</span>
+                    </div>
+                    <div
+                      className={`px-3 py-2 rounded-2xl max-w-[85%] text-xs leading-relaxed ${
+                        msg.isSelf
+                          ? "bg-blue-600 text-white rounded-tr-none"
+                          : "bg-zinc-800 text-zinc-200 rounded-tl-none border border-zinc-700/50"
+                      }`}
+                    >
+                      {msg.text}
+                    </div>
+                  </div>
+                ))
+              )}
+              <div ref={chatBottomRef} />
+            </div>
+
+            {/* Chat Input Form */}
+            <form onSubmit={handleSendMessage} className="p-3 border-t border-zinc-800 bg-zinc-950 flex items-center space-x-2">
+              <input
+                type="text"
+                value={chatInputText}
+                onChange={(e) => setChatInputText(e.target.value)}
+                placeholder="Type a message..."
+                className="flex-1 px-3 py-2 bg-zinc-900 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 text-xs"
+              />
+              <button
+                type="submit"
+                disabled={!chatInputText.trim()}
+                className="p-2 bg-blue-600 hover:bg-blue-700 disabled:opacity-40 text-white rounded-xl transition-colors"
+              >
+                <Send className="w-4 h-4" />
+              </button>
+            </form>
           </aside>
         )}
       </div>
@@ -553,11 +832,30 @@ export default function MeetingRoomPage({ params }: RoomProps) {
               {isVideoOff ? "Start Video" : "Stop Video"}
             </span>
           </button>
+
+          {/* Screen Share Button */}
+          <button
+            onClick={toggleScreenShare}
+            className={`p-3.5 rounded-2xl transition-all flex items-center space-x-2 ${
+              isScreenSharing
+                ? "bg-emerald-600 text-white hover:bg-emerald-700 shadow-lg"
+                : "bg-zinc-800 text-zinc-200 hover:bg-zinc-700"
+            }`}
+            title={isScreenSharing ? "Stop Sharing Screen" : "Share Screen"}
+          >
+            <MonitorUp className="w-5 h-5" />
+            <span className="text-xs font-medium hidden sm:inline">
+              {isScreenSharing ? "Stop Share" : "Share Screen"}
+            </span>
+          </button>
         </div>
 
         <div className="flex items-center space-x-3">
           <button
-            onClick={() => setIsParticipantsOpen(!isParticipantsOpen)}
+            onClick={() => {
+              setIsParticipantsOpen(!isParticipantsOpen);
+              if (isChatOpen) setIsChatOpen(false);
+            }}
             className={`p-3.5 rounded-2xl transition-colors flex items-center space-x-1.5 ${
               isParticipantsOpen
                 ? "bg-blue-600 text-white"
@@ -568,8 +866,25 @@ export default function MeetingRoomPage({ params }: RoomProps) {
             <span className="text-xs font-medium">{totalCount}</span>
           </button>
 
-          <button className="p-3.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded-2xl transition-colors">
+          <button
+            onClick={() => {
+              setIsChatOpen(!isChatOpen);
+              setUnreadCount(0);
+              if (isParticipantsOpen) setIsParticipantsOpen(false);
+            }}
+            className={`p-3.5 rounded-2xl transition-colors relative ${
+              isChatOpen
+                ? "bg-blue-600 text-white"
+                : "bg-zinc-800 hover:bg-zinc-700 text-zinc-300"
+            }`}
+            title="In-Call Chat"
+          >
             <MessageSquare className="w-5 h-5" />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] font-bold w-5 h-5 rounded-full flex items-center justify-center animate-bounce">
+                {unreadCount}
+              </span>
+            )}
           </button>
 
           {isHost ? (
@@ -591,6 +906,17 @@ export default function MeetingRoomPage({ params }: RoomProps) {
           )}
         </div>
       </footer>
+
+      {/* Share Meeting Modal */}
+      {meeting && (
+        <ShareMeetingModal
+          isOpen={isShareModalOpen}
+          onClose={() => setIsShareModalOpen(false)}
+          meetingCode={meeting.meeting_code}
+          meetingTitle={meeting.title}
+          autoRedirectOnJoin={false}
+        />
+      )}
     </main>
   );
 }

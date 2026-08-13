@@ -193,7 +193,29 @@ def join_meeting(
 
     # Determine if user is host or guest participant
     now = datetime.now(timezone.utc)
-    is_host = (meeting.host_id == 1 and payload.display_name.lower().startswith("default user"))
+    
+    # Check if a host participant already exists for this meeting
+    existing_host = (
+        db.query(models.Participant)
+        .filter(models.Participant.meeting_id == meeting.id, models.Participant.role == "host")
+        .first()
+    )
+
+    host_user = db.query(models.User).filter(models.User.id == meeting.host_id).first()
+    host_name = host_user.name.strip().lower() if host_user else ""
+    user_display = payload.display_name.strip().lower()
+
+    # User is assigned 'host' if:
+    # 1. No host participant exists in DB yet for this meeting, OR
+    # 2. Display name matches host name or starts with 'default user'
+    is_host = False
+    if not existing_host:
+        is_host = True
+    elif host_name and user_display == host_name:
+        is_host = True
+    elif user_display.startswith("default user"):
+        is_host = True
+
     role = "host" if is_host else "participant"
 
     participant = models.Participant(
@@ -205,6 +227,7 @@ def join_meeting(
         is_muted=False,
         is_video_on=True
     )
+
 
     # Transition scheduled meeting to ongoing if host joins
     if meeting.status == "scheduled" and is_host:

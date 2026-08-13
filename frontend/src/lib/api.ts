@@ -73,6 +73,14 @@ export const api = {
   // Fetch default logged-in user
   getCurrentUser: (): Promise<User> => fetchAPI<User>("/api/users/me"),
 
+  // Update default logged-in user profile (display name)
+  updateCurrentUser: (name: string): Promise<User> =>
+    fetchAPI<User>("/api/users/me", {
+      method: "PUT",
+      body: JSON.stringify({ name }),
+    }),
+
+
   // Fetch upcoming scheduled meetings
   getUpcomingMeetings: (): Promise<Meeting[]> => fetchAPI<Meeting[]>("/api/meetings/upcoming"),
 

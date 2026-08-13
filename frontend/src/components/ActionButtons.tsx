@@ -3,18 +3,20 @@
 import { useState } from "react";
 import { Video, PlusSquare, Calendar, MonitorUp, Loader2 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { api } from "@/lib/api";
+import { api, Meeting } from "@/lib/api";
+import ShareMeetingModal from "@/components/ShareMeetingModal";
 
 export default function ActionButtons() {
   const router = useRouter();
   const [creating, setCreating] = useState(false);
+  const [createdMeeting, setCreatedMeeting] = useState<Meeting | null>(null);
 
   const handleNewMeeting = async () => {
     if (creating) return;
     setCreating(true);
     try {
       const newMeeting = await api.createInstantMeeting("Instant Meeting");
-      router.push(`/meeting/${newMeeting.meeting_code}`);
+      setCreatedMeeting(newMeeting);
     } catch (err: any) {
       console.error("Failed to create instant meeting:", err);
       alert(`Error starting instant meeting:\n${err?.message || err}`);
@@ -26,7 +28,7 @@ export default function ActionButtons() {
   const actions = [
     {
       icon: creating ? Loader2 : Video,
-      label: creating ? "Starting..." : "New Meeting",
+      label: creating ? "Creating..." : "New Meeting",
       color: "bg-orange-500 hover:bg-orange-600",
       onClick: handleNewMeeting,
       isLoading: creating,
@@ -52,15 +54,28 @@ export default function ActionButtons() {
   ];
 
   return (
-    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-2xl mx-auto md:mx-0">
-      {actions.map((action, idx) => (
-        <div key={idx} className="flex flex-col items-center group cursor-pointer" onClick={action.onClick}>
-          <div className={`${action.color} p-5 rounded-2xl md:rounded-3xl shadow-lg transform transition-transform group-hover:scale-105 group-active:scale-95 flex items-center justify-center mb-3`}>
-            <action.icon className={`w-10 h-10 md:w-12 md:h-12 text-white ${action.isLoading ? "animate-spin" : ""}`} strokeWidth={1.5} />
+    <>
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full max-w-2xl mx-auto md:mx-0">
+        {actions.map((action, idx) => (
+          <div key={idx} className="flex flex-col items-center group cursor-pointer" onClick={action.onClick}>
+            <div className={`${action.color} p-5 rounded-2xl md:rounded-3xl shadow-lg transform transition-transform group-hover:scale-105 group-active:scale-95 flex items-center justify-center mb-3`}>
+              <action.icon className={`w-10 h-10 md:w-12 md:h-12 text-white ${action.isLoading ? "animate-spin" : ""}`} strokeWidth={1.5} />
+            </div>
+            <span className="text-zinc-300 font-medium text-sm">{action.label}</span>
           </div>
-          <span className="text-zinc-300 font-medium text-sm">{action.label}</span>
-        </div>
-      ))}
-    </div>
+        ))}
+      </div>
+
+      {createdMeeting && (
+        <ShareMeetingModal
+          isOpen={!!createdMeeting}
+          onClose={() => setCreatedMeeting(null)}
+          meetingCode={createdMeeting.meeting_code}
+          meetingTitle={createdMeeting.title}
+          autoRedirectOnJoin={true}
+        />
+      )}
+    </>
   );
 }
+

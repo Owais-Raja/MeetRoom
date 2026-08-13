@@ -11,7 +11,9 @@ export interface SignalingMessage {
     | "mute-toggle"
     | "mute-all"
     | "end-meeting"
-    | "kick-participant";
+    | "kick-participant"
+    | "mute-participant"
+    | "chat";
   from: string;
   to: string | null;
   payload: any;

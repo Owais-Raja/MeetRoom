@@ -45,6 +45,11 @@ export default function MeetingLobbyPage({ params }: PageProps) {
     // Prefill display name from default logged in user if available
     async function fetchUser() {
       try {
+        const savedName = typeof window !== "undefined" ? localStorage.getItem("meetroom_user_name") : null;
+        if (savedName) {
+          setDisplayName(savedName);
+          return;
+        }
         const u = await api.getCurrentUser();
         if (u?.name) setDisplayName(u.name);
       } catch {}
@@ -53,6 +58,7 @@ export default function MeetingLobbyPage({ params }: PageProps) {
     fetchMeetingDetails();
     fetchUser();
   }, [code]);
+
 
   // 2. Initialize local camera & microphone preview
   useEffect(() => {
