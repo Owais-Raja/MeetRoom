@@ -1,70 +1,209 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import { Copy, Check } from "lucide-react";
 import Navbar from "@/components/Navbar";
+import Sidebar from "@/components/Sidebar";
 import ActionButtons from "@/components/ActionButtons";
 import UpcomingMeetings from "@/components/UpcomingMeetings";
+import { api, User } from "@/lib/api";
 
 export default function Home() {
-  const [time, setTime] = useState<Date | null>(null);
+  const [user, setUser] = useState<User | null>(null);
+  const [copiedPMI, setCopiedPMI] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
-    setTime(new Date());
-    const timer = setInterval(() => {
-      setTime(new Date());
-    }, 1000);
-    return () => clearInterval(timer);
+    async function loadUser() {
+      try {
+        const u = await api.getCurrentUser();
+        const localName =
+          typeof window !== "undefined"
+            ? localStorage.getItem("meetroom_user_name")
+            : null;
+        if (localName) u.name = localName;
+        setUser(u);
+      } catch {}
+    }
+    loadUser();
   }, []);
 
+  const initials = user?.name
+    ? user.name
+        .split(" ")
+        .map((n) => n[0])
+        .join("")
+        .toUpperCase()
+        .slice(0, 2)
+    : "U";
+
+  // Generate a stable Personal Meeting ID from user id
+  const personalMeetingId = user?.id
+    ? `${String(user.id).padStart(3, "0")} ${String(user.id * 412 + 5279).slice(0, 3)} ${String(
+        user.id * 3187 + 1000
+      ).slice(0, 4)}`
+    : "— — —";
+
+  const handleCopyPMI = () => {
+    if (personalMeetingId !== "— — —") {
+      navigator.clipboard.writeText(personalMeetingId.replace(/\s/g, ""));
+      setCopiedPMI(true);
+      setTimeout(() => setCopiedPMI(false), 2000);
+    }
+  };
+
   return (
-    <main className="min-h-screen bg-zinc-950 text-white selection:bg-blue-600 selection:text-white">
+    <div className="min-h-screen bg-[#F5F5F5] flex flex-col">
       <Navbar />
 
-      <div className="max-w-7xl mx-auto px-6 py-8 md:py-12">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 md:gap-12">
-          {/* Left Column - Hero Banner & Action Grid */}
-          <div className="lg:col-span-2 space-y-10">
-            {/* Live Clock & Date Banner */}
-            <div className="bg-gradient-to-r from-blue-600 via-blue-700 to-indigo-800 rounded-3xl p-8 shadow-2xl flex items-end min-h-[220px] md:min-h-[260px] relative overflow-hidden border border-blue-500/20">
-              <div className="absolute inset-0 bg-black/10 backdrop-blur-[1px]"></div>
-              <div className="relative z-10 w-full flex justify-between items-end">
-                <div>
-                  <h1
-                    suppressHydrationWarning
-                    className="text-5xl md:text-7xl font-light tracking-tight mb-2 font-mono"
+      {/* Body: sidebar + content */}
+      <div className="flex flex-1 overflow-hidden" style={{ height: "calc(100vh - 56px)" }}>
+        {/* Left Sidebar */}
+        <Sidebar />
+
+        {/* Scrollable Content Area */}
+        <div className="flex-1 overflow-y-auto">
+          <div className="p-6 flex gap-5 min-h-full items-start">
+
+            {/* ── Center Column ── */}
+            <div className="flex-1 min-w-0 space-y-4">
+
+              {/* User Profile Card */}
+              <div className="bg-white rounded-xl border border-gray-200 p-5 flex items-center justify-between shadow-sm">
+                <div className="flex items-center gap-4">
+                  <div
+                    className="w-14 h-14 rounded-full flex items-center justify-center text-white text-xl font-semibold flex-shrink-0"
+                    style={{ backgroundColor: "#747487" }}
                   >
-                    {time
-                      ? time.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })
-                      : "--:--:--"}
-                  </h1>
-                  <p suppressHydrationWarning className="text-blue-100 text-base md:text-lg font-medium">
-                    {time
-                      ? time.toLocaleDateString([], {
-                          weekday: "long",
-                          month: "long",
-                          day: "numeric",
-                        })
-                      : "Loading date..."}
-                  </p>
+                    {initials}
+                  </div>
+                  <div>
+                    <h2 className="text-lg font-semibold text-gray-900 leading-tight">
+                      {user?.name || "Default User"}
+                    </h2>
+                    <p className="text-sm font-medium mt-0.5" style={{ color: "#0B5CFF" }}>
+                      Plan: Workplace Basic
+                    </p>
+                  </div>
                 </div>
+                <div className="flex flex-col items-end gap-1.5">
+                  <button className="text-sm text-gray-700 border border-gray-300 rounded-md px-4 py-1.5 hover:bg-gray-50 transition-colors font-medium">
+                    Manage Plan
+                  </button>
+                  <button
+                    className="text-sm hover:underline font-medium"
+                    style={{ color: "#0B5CFF" }}
+                  >
+                    View Plan Details
+                  </button>
+                </div>
+              </div>
+
+              {/* Meeting Action Buttons */}
+              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                <ActionButtons />
+              </div>
+
+              {/* Recent Activity */}
+              <div className="bg-white rounded-xl border border-gray-200 p-5 shadow-sm">
+                <h3 className="text-base font-semibold text-gray-900 mb-4">
+                  Recent activity
+                </h3>
+                <UpcomingMeetings defaultTab="recent" />
               </div>
             </div>
 
-            {/* Quick Action Cards Grid */}
-            <div className="bg-zinc-900/40 p-6 md:p-8 rounded-3xl border border-zinc-800/80 shadow-xl">
-              <h2 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-6">
-                Meeting Actions
-              </h2>
-              <ActionButtons />
-            </div>
-          </div>
+            {/* ── Right Panel ── */}
+            <div className="w-72 flex-shrink-0 space-y-4">
 
-          {/* Right Column - Upcoming & Recent Meetings */}
-          <div className="lg:col-span-1 h-full">
-            <UpcomingMeetings />
+              {/* Quick Icon Actions */}
+              <div className="bg-white rounded-xl border border-gray-200 p-4 shadow-sm">
+                <div className="grid grid-cols-3 gap-3 mb-5">
+                  {/* Schedule */}
+                  <button
+                    onClick={() => router.push("/schedule")}
+                    className="flex flex-col items-center gap-1.5 group"
+                    aria-label="Schedule a meeting"
+                  >
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl group-hover:opacity-90 transition-all group-hover:scale-105 active:scale-95 shadow-sm"
+                      style={{ backgroundColor: "#0B5CFF" }}
+                    >
+                      📅
+                    </div>
+                    <span className="text-xs text-gray-600 font-medium">Schedule</span>
+                  </button>
+
+                  {/* Join */}
+                  <button
+                    onClick={() => router.push("/join")}
+                    className="flex flex-col items-center gap-1.5 group"
+                    aria-label="Join a meeting"
+                  >
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl group-hover:opacity-90 transition-all group-hover:scale-105 active:scale-95 shadow-sm"
+                      style={{ backgroundColor: "#0B5CFF" }}
+                    >
+                      🔗
+                    </div>
+                    <span className="text-xs text-gray-600 font-medium">Join</span>
+                  </button>
+
+                  {/* Host (New Meeting) */}
+                  <button
+                    onClick={() => {
+                      // Trigger the New Meeting action via ActionButtons — 
+                      // We dispatch a custom event that ActionButtons listens to
+                      window.dispatchEvent(new CustomEvent("zoom:newmeeting"));
+                    }}
+                    className="flex flex-col items-center gap-1.5 group"
+                    aria-label="Host a new meeting"
+                  >
+                    <div
+                      className="w-12 h-12 rounded-xl flex items-center justify-center text-white text-xl group-hover:opacity-90 transition-all group-hover:scale-105 active:scale-95 shadow-sm"
+                      style={{ backgroundColor: "#E86C12" }}
+                    >
+                      🎥
+                    </div>
+                    <span className="text-xs text-gray-600 font-medium">Host</span>
+                  </button>
+                </div>
+
+                {/* Personal Meeting ID */}
+                <div className="border-t border-gray-100 pt-4">
+                  <p className="text-sm font-semibold text-gray-900 mb-1">
+                    Personal Meeting ID
+                  </p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-500 font-mono tracking-wide">
+                      {personalMeetingId}
+                    </span>
+                    <button
+                      onClick={handleCopyPMI}
+                      className="text-gray-400 hover:text-gray-600 transition-colors flex-shrink-0"
+                      title="Copy Meeting ID"
+                      aria-label="Copy personal meeting ID"
+                    >
+                      {copiedPMI ? (
+                        <Check className="w-3.5 h-3.5 text-green-500" />
+                      ) : (
+                        <Copy className="w-3.5 h-3.5" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {/* Upcoming Meetings Panel */}
+              <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
+                <UpcomingMeetings defaultTab="upcoming" />
+              </div>
+            </div>
+
           </div>
         </div>
       </div>
-    </main>
+    </div>
   );
 }

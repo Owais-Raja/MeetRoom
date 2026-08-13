@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { format } from "date-fns";
-import { Calendar, Clock, Copy, Check, Video, X } from "lucide-react";
+import { Calendar, Clock, Copy, Check, Video, X, ArrowRight } from "lucide-react";
 import { api, Meeting } from "@/lib/api";
 
 /**
@@ -11,13 +11,16 @@ import { api, Meeting } from "@/lib/api";
  * never let the browser re-convert it from UTC to local (that would add +5:30).
  */
 function parseLocalDatetime(value: string): Date {
-  // Strip trailing Z or +HH:MM / -HH:MM so the browser treats it as local
   const normalized = value.replace(/Z$/, "").replace(/[+-]\d{2}:\d{2}$/, "");
   return new Date(normalized);
 }
 
-export default function UpcomingMeetings() {
-  const [activeTab, setActiveTab] = useState<"upcoming" | "recent">("upcoming");
+interface UpcomingMeetingsProps {
+  defaultTab?: "upcoming" | "recent";
+}
+
+export default function UpcomingMeetings({ defaultTab = "upcoming" }: UpcomingMeetingsProps) {
+  const [activeTab, setActiveTab] = useState<"upcoming" | "recent">(defaultTab);
   const [meetings, setMeetings] = useState<Meeting[]>([]);
   const [loading, setLoading] = useState(true);
   const [copiedCode, setCopiedCode] = useState<string | null>(null);
@@ -27,9 +30,10 @@ export default function UpcomingMeetings() {
     async function fetchMeetings() {
       setLoading(true);
       try {
-        const data = activeTab === "upcoming"
-          ? await api.getUpcomingMeetings()
-          : await api.getRecentMeetings();
+        const data =
+          activeTab === "upcoming"
+            ? await api.getUpcomingMeetings()
+            : await api.getRecentMeetings();
         setMeetings(data);
       } catch (error) {
         console.error(`Failed to fetch ${activeTab} meetings:`, error);
@@ -52,7 +56,6 @@ export default function UpcomingMeetings() {
     setCancellingCode(code);
     try {
       await api.cancelMeeting(code);
-      // Remove from list
       setMeetings((prev) => prev.filter((m) => m.meeting_code !== code));
     } catch (err: any) {
       alert(`Failed to cancel meeting: ${err?.message || err}`);
@@ -62,144 +65,171 @@ export default function UpcomingMeetings() {
   };
 
   return (
-    <div className="bg-zinc-900/60 rounded-3xl p-6 h-full border border-zinc-800 flex flex-col">
+    <div className="flex flex-col">
       {/* Tab Header */}
-      <div className="flex items-center justify-between border-b border-zinc-800 pb-4 mb-6">
-        <div className="flex space-x-2 bg-zinc-950 p-1 rounded-xl border border-zinc-800">
+      <div className="flex items-center justify-between px-4 pt-4 pb-3 border-b border-gray-100">
+        <div className="flex items-center gap-1">
           <button
             onClick={() => setActiveTab("upcoming")}
-            className={`px-4 py-1.5 rounded-lg text-xs md:text-sm font-medium transition-all ${
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
               activeTab === "upcoming"
-                ? "bg-blue-600 text-white shadow-md"
-                : "text-zinc-400 hover:text-white"
+                ? "text-white"
+                : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
             }`}
+            style={activeTab === "upcoming" ? { backgroundColor: "#0B5CFF" } : {}}
           >
             Upcoming
           </button>
           <button
             onClick={() => setActiveTab("recent")}
-            className={`px-4 py-1.5 rounded-lg text-xs md:text-sm font-medium transition-all ${
+            className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-colors ${
               activeTab === "recent"
-                ? "bg-blue-600 text-white shadow-md"
-                : "text-zinc-400 hover:text-white"
+                ? "text-white"
+                : "text-gray-500 hover:text-gray-700 hover:bg-gray-100"
             }`}
+            style={activeTab === "recent" ? { backgroundColor: "#0B5CFF" } : {}}
           >
-            Recent / History
+            Recent
           </button>
         </div>
+        <button
+          className="text-xs font-medium flex items-center gap-0.5 hover:underline transition-colors"
+          style={{ color: "#0B5CFF" }}
+        >
+          Visit Meetings
+          <ArrowRight className="w-3 h-3" />
+        </button>
       </div>
 
-      {/* Content Area */}
-      {loading ? (
-        <div className="flex-1 flex flex-col items-center justify-center min-h-[220px] text-zinc-500 space-y-3">
-          <div className="w-6 h-6 border-2 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-          <p className="text-sm">Loading meetings...</p>
-        </div>
-      ) : meetings.length === 0 ? (
-        <div className="flex-1 flex flex-col items-center justify-center min-h-[220px] text-zinc-500 space-y-2">
-          <Calendar className="w-10 h-10 stroke-1 text-zinc-600 mb-1" />
-          <p className="text-sm font-medium">No {activeTab} meetings found</p>
-          <p className="text-xs text-zinc-600 text-center max-w-[200px]">
-            {activeTab === "upcoming"
-              ? "Schedule a meeting or start an instant meeting."
-              : "Completed meetings will appear here."}
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-4 flex-1 overflow-y-auto max-h-[500px] pr-1">
-          {meetings.map((meeting) => (
+      {/* Content */}
+      <div className="p-3">
+        {loading ? (
+          <div className="flex flex-col items-center justify-center py-8 text-gray-400 gap-2">
             <div
-              key={meeting.id}
-              className="bg-zinc-950 p-5 rounded-2xl border border-zinc-800/80 hover:border-zinc-700 transition-all space-y-3"
-            >
-              <div className="flex justify-between items-start">
-                <div>
-                  <h3 className="text-zinc-100 font-semibold text-base">{meeting.title}</h3>
-                  {meeting.description && (
-                    <p className="text-xs text-zinc-400 line-clamp-1 mt-0.5">{meeting.description}</p>
-                  )}
+              className="w-5 h-5 border-2 border-t-transparent rounded-full animate-spin"
+              style={{ borderColor: "#0B5CFF", borderTopColor: "transparent" }}
+            />
+            <p className="text-xs">Loading meetings...</p>
+          </div>
+        ) : meetings.length === 0 ? (
+          <div className="flex flex-col items-center justify-center py-8 text-gray-400 gap-2">
+            <Calendar className="w-8 h-8 stroke-1 text-gray-300" />
+            <p className="text-sm font-medium text-gray-500">
+              No{" "}
+              {activeTab === "upcoming" ? "upcoming" : "recent"} meetings
+            </p>
+            {activeTab === "upcoming" && (
+              <p className="text-xs text-gray-400 text-center max-w-[180px]">
+                Schedule or start a new meeting to get started.
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="space-y-2 max-h-[420px] overflow-y-auto pr-0.5">
+            {meetings.map((meeting) => (
+              <div
+                key={meeting.id}
+                className="border border-gray-200 rounded-xl p-3 hover:border-gray-300 transition-colors bg-white"
+              >
+                <div className="flex justify-between items-start gap-2 mb-2">
+                  <div className="min-w-0">
+                    <h4 className="text-sm font-semibold text-gray-900 truncate">
+                      {meeting.title}
+                    </h4>
+                    {meeting.description && (
+                      <p className="text-xs text-gray-500 truncate mt-0.5">
+                        {meeting.description}
+                      </p>
+                    )}
+                  </div>
+                  <span
+                    className={`text-[10px] font-semibold tracking-wide uppercase px-2 py-0.5 rounded-full flex-shrink-0 ${
+                      meeting.status === "scheduled"
+                        ? "bg-blue-50 text-blue-600"
+                        : meeting.status === "ongoing"
+                        ? "bg-green-50 text-green-600"
+                        : meeting.status === "cancelled"
+                        ? "bg-red-50 text-red-500"
+                        : "bg-gray-100 text-gray-500"
+                    }`}
+                  >
+                    {meeting.status}
+                  </span>
                 </div>
-                <span
-                  className={`text-[10px] font-semibold tracking-wider uppercase px-2.5 py-1 rounded-full ${
-                    meeting.status === "scheduled"
-                      ? "bg-blue-500/10 text-blue-400 border border-blue-500/20"
-                      : meeting.status === "ongoing"
-                      ? "bg-emerald-500/10 text-emerald-400 border border-emerald-500/20"
-                      : meeting.status === "cancelled"
-                      ? "bg-red-500/10 text-red-400 border border-red-500/20"
-                      : "bg-zinc-800 text-zinc-400"
-                  }`}
-                >
-                  {meeting.status}
-                </span>
-              </div>
 
-              <div className="text-xs text-zinc-400 space-y-1 bg-zinc-900/60 p-3 rounded-xl border border-zinc-800/50">
-                <div className="flex items-center space-x-2">
-                  <Clock className="w-3.5 h-3.5 text-zinc-500" />
+                <div className="flex items-center gap-1.5 text-xs text-gray-500 mb-2.5 bg-gray-50 rounded-lg px-2.5 py-1.5">
+                  <Clock className="w-3 h-3 flex-shrink-0 text-gray-400" />
                   <span>
                     {meeting.scheduled_at
-                      ? format(parseLocalDatetime(meeting.scheduled_at), "MMM d, yyyy • h:mm a")
+                      ? format(
+                          parseLocalDatetime(meeting.scheduled_at),
+                          "MMM d, yyyy • h:mm a"
+                        )
                       : meeting.started_at
                       ? format(new Date(meeting.started_at), "MMM d, yyyy • h:mm a")
                       : "No scheduled time"}
                   </span>
                 </div>
-                <div className="flex items-center space-x-2">
-                  <Video className="w-3.5 h-3.5 text-zinc-500" />
-                  <span>Meeting Code: <code className="text-blue-400 font-mono">{meeting.meeting_code}</code></span>
-                </div>
-              </div>
 
-              <div className="flex gap-2 pt-1">
-                {activeTab === "upcoming" ? (
-                  <>
-                    <button
-                      onClick={() => window.location.href = `/meeting/${meeting.meeting_code}`}
-                      className="flex-1 bg-blue-600 hover:bg-blue-700 text-white text-xs py-2 rounded-xl font-medium transition-colors"
-                    >
-                      Start / Join
-                    </button>
-                    <button
-                      onClick={() => handleCancel(meeting.meeting_code)}
-                      disabled={cancellingCode === meeting.meeting_code}
-                      className="px-3 bg-zinc-800 hover:bg-red-500/20 text-zinc-400 hover:text-red-400 text-xs py-2 rounded-xl transition-colors flex items-center space-x-1.5 disabled:opacity-50"
-                      title="Cancel meeting"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                      <span>{cancellingCode === meeting.meeting_code ? "Cancelling..." : "Cancel"}</span>
-                    </button>
-                  </>
-                ) : (
-                  <button
-                    disabled
-                    className="flex-1 bg-zinc-800 text-zinc-500 text-xs py-2 rounded-xl font-medium cursor-not-allowed"
-                  >
-                    Ended
-                  </button>
-                )}
-                <button
-                  onClick={() => handleCopyLink(meeting.meeting_code)}
-                  className="px-3 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs py-2 rounded-xl transition-colors flex items-center space-x-1.5"
-                  title="Copy invite link"
-                >
-                  {copiedCode === meeting.meeting_code ? (
+                <div className="flex gap-1.5">
+                  {activeTab === "upcoming" ? (
                     <>
-                      <Check className="w-3.5 h-3.5 text-emerald-400" />
-                      <span className="text-emerald-400">Copied</span>
+                      <button
+                        onClick={() =>
+                          (window.location.href = `/meeting/${meeting.meeting_code}`)
+                        }
+                        className="flex-1 text-xs py-1.5 rounded-lg font-semibold text-white transition-colors"
+                        style={{ backgroundColor: "#0B5CFF" }}
+                      >
+                        Start / Join
+                      </button>
+                      <button
+                        onClick={() => handleCancel(meeting.meeting_code)}
+                        disabled={cancellingCode === meeting.meeting_code}
+                        className="px-2.5 bg-gray-100 hover:bg-red-50 text-gray-500 hover:text-red-500 text-xs py-1.5 rounded-lg transition-colors flex items-center gap-1 disabled:opacity-50"
+                        title="Cancel meeting"
+                        aria-label="Cancel meeting"
+                      >
+                        <X className="w-3.5 h-3.5" />
+                        <span>
+                          {cancellingCode === meeting.meeting_code
+                            ? "..."
+                            : "Cancel"}
+                        </span>
+                      </button>
                     </>
                   ) : (
-                    <>
-                      <Copy className="w-3.5 h-3.5 text-zinc-400" />
-                      <span>Copy Link</span>
-                    </>
+                    <button
+                      disabled
+                      className="flex-1 bg-gray-100 text-gray-400 text-xs py-1.5 rounded-lg font-medium cursor-not-allowed"
+                    >
+                      Ended
+                    </button>
                   )}
-                </button>
+                  <button
+                    onClick={() => handleCopyLink(meeting.meeting_code)}
+                    className="px-2.5 bg-gray-100 hover:bg-gray-200 text-gray-600 text-xs py-1.5 rounded-lg transition-colors flex items-center gap-1"
+                    title="Copy invite link"
+                    aria-label="Copy invite link"
+                  >
+                    {copiedCode === meeting.meeting_code ? (
+                      <>
+                        <Check className="w-3.5 h-3.5 text-green-500" />
+                        <span className="text-green-600">Copied</span>
+                      </>
+                    ) : (
+                      <>
+                        <Copy className="w-3.5 h-3.5" />
+                        <span>Copy</span>
+                      </>
+                    )}
+                  </button>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 }

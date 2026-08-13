@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { X, Copy, Check, Share2, Video, ExternalLink } from "lucide-react";
+import { X, Copy, Check, Share2, Video } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 interface ShareMeetingModalProps {
@@ -66,75 +66,87 @@ export default function ShareMeetingModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4 animate-in fade-in duration-200">
-      <div className="w-full max-w-md bg-zinc-900 border border-zinc-800 rounded-3xl shadow-2xl overflow-hidden p-6 space-y-6">
-        <div className="flex items-center justify-between border-b border-zinc-800 pb-4">
-          <div className="flex items-center space-x-2.5">
-            <div className="p-2 bg-emerald-600/20 text-emerald-400 rounded-xl border border-emerald-500/20">
-              <Share2 className="w-5 h-5" />
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
+      <div className="w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-gray-200">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-green-50">
+              <Share2 className="w-4 h-4 text-green-600" />
             </div>
             <div>
-              <h2 className="text-lg font-bold text-white">Share Meeting</h2>
-              <p className="text-xs text-zinc-400">Invite participants to join your meeting</p>
+              <h2 className="text-base font-semibold text-gray-900">
+                Share Meeting
+              </h2>
+              <p className="text-xs text-gray-500">
+                Invite participants to join
+              </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 text-zinc-400 hover:text-white rounded-full hover:bg-zinc-800 transition-colors"
+            className="p-1.5 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors"
+            aria-label="Close"
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="space-y-4">
+        {/* Body */}
+        <div className="p-6 space-y-4">
+          {/* Meeting Code */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
               Meeting Code
             </label>
-            <div className="flex items-center justify-between bg-zinc-950 p-3 rounded-xl border border-zinc-800">
-              <code className="text-blue-400 font-mono text-base font-bold">{meetingCode}</code>
+            <div className="flex items-center justify-between bg-gray-50 border border-gray-200 px-4 py-3 rounded-xl">
+              <code className="text-base font-bold font-mono" style={{ color: "#0B5CFF" }}>
+                {meetingCode}
+              </code>
               <button
                 onClick={handleCopyCode}
-                className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 text-xs rounded-lg font-medium transition-colors flex items-center space-x-1.5"
+                className="flex items-center gap-1.5 text-xs font-medium px-3 py-1.5 bg-white border border-gray-200 rounded-lg hover:bg-gray-100 transition-colors text-gray-600"
               >
                 {copiedCode ? (
                   <>
-                    <Check className="w-3.5 h-3.5 text-emerald-400" />
-                    <span className="text-emerald-400">Copied</span>
+                    <Check className="w-3.5 h-3.5 text-green-500" />
+                    <span className="text-green-600">Copied</span>
                   </>
                 ) : (
                   <>
-                    <Copy className="w-3.5 h-3.5 text-zinc-400" />
-                    <span>Copy Code</span>
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Copy</span>
                   </>
                 )}
               </button>
             </div>
           </div>
 
+          {/* Invite Link */}
           <div>
-            <label className="block text-xs font-semibold uppercase tracking-wider text-zinc-400 mb-1.5">
+            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
               Invite Link
             </label>
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center gap-2">
               <input
                 type="text"
                 readOnly
                 value={meetingUrl}
-                className="flex-1 px-3 py-2.5 bg-zinc-950 border border-zinc-800 rounded-xl text-zinc-300 text-xs font-mono truncate"
+                className="flex-1 px-3 py-2.5 bg-gray-50 border border-gray-200 rounded-xl text-gray-600 text-xs font-mono truncate focus:outline-none"
               />
               <button
                 onClick={handleCopyLink}
-                className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-xs rounded-xl font-medium transition-colors flex items-center space-x-1.5 shadow-md"
+                className="px-4 py-2.5 text-white text-xs font-semibold rounded-xl shadow-sm transition-colors flex items-center gap-1.5 flex-shrink-0"
+                style={{ backgroundColor: "#0B5CFF" }}
               >
                 {copiedLink ? (
                   <>
-                    <Check className="w-4 h-4 text-emerald-400" />
+                    <Check className="w-3.5 h-3.5" />
                     <span>Copied!</span>
                   </>
                 ) : (
                   <>
-                    <Copy className="w-4 h-4" />
+                    <Copy className="w-3.5 h-3.5" />
                     <span>Copy Link</span>
                   </>
                 )}
@@ -143,22 +155,24 @@ export default function ShareMeetingModal({
           </div>
         </div>
 
-        <div className="flex items-center justify-between pt-2 border-t border-zinc-800/80">
+        {/* Footer */}
+        <div className="flex items-center justify-between px-6 py-4 border-t border-gray-100 bg-gray-50">
           <button
             onClick={handleNativeShare}
-            className="px-4 py-2.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-medium rounded-xl transition-colors flex items-center space-x-1.5"
+            className="flex items-center gap-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 bg-white border border-gray-200 px-4 py-2 rounded-xl hover:bg-gray-100 transition-colors"
           >
-            <Share2 className="w-4 h-4 text-blue-400" />
-            <span>More Share Options</span>
+            <Share2 className="w-4 h-4" style={{ color: "#0B5CFF" }} />
+            <span>More Options</span>
           </button>
 
           {autoRedirectOnJoin && (
             <button
               onClick={handleJoinNow}
-              className="px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-xl shadow-lg transition-colors flex items-center space-x-1.5"
+              className="flex items-center gap-1.5 text-sm font-semibold text-white px-5 py-2 rounded-xl shadow-sm transition-colors"
+              style={{ backgroundColor: "#16A34A" }}
             >
               <Video className="w-4 h-4" />
-              <span>Join Meeting Now</span>
+              <span>Join Now</span>
             </button>
           )}
         </div>

@@ -2,7 +2,7 @@
 
 import { use, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Mic, MicOff, Video, VideoOff, Settings, ShieldCheck } from "lucide-react";
+import { Mic, MicOff, Video, VideoOff, ShieldCheck } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { api, Meeting } from "@/lib/api";
 
@@ -45,7 +45,10 @@ export default function MeetingLobbyPage({ params }: PageProps) {
     // Prefill display name from default logged in user if available
     async function fetchUser() {
       try {
-        const savedName = typeof window !== "undefined" ? localStorage.getItem("meetroom_user_name") : null;
+        const savedName =
+          typeof window !== "undefined"
+            ? localStorage.getItem("meetroom_user_name")
+            : null;
         if (savedName) {
           setDisplayName(savedName);
           return;
@@ -58,7 +61,6 @@ export default function MeetingLobbyPage({ params }: PageProps) {
     fetchMeetingDetails();
     fetchUser();
   }, [code]);
-
 
   // 2. Initialize local camera & microphone preview
   useEffect(() => {
@@ -76,7 +78,10 @@ export default function MeetingLobbyPage({ params }: PageProps) {
           videoRef.current.srcObject = stream;
         }
       } catch (err) {
-        console.warn("Camera/Microphone permission denied or device not found:", err);
+        console.warn(
+          "Camera/Microphone permission denied or device not found:",
+          err
+        );
         setIsVideoOff(true);
       }
     }
@@ -141,29 +146,36 @@ export default function MeetingLobbyPage({ params }: PageProps) {
     }
   };
 
-
   if (loading) {
     return (
-      <main className="min-h-screen bg-zinc-950 text-white flex flex-col items-center justify-center space-y-4">
-        <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin"></div>
-        <p className="text-zinc-400 font-medium">Validating meeting link...</p>
+      <main className="min-h-screen bg-[#F5F5F5] flex flex-col items-center justify-center gap-3">
+        <div
+          className="w-8 h-8 border-3 border-t-transparent rounded-full animate-spin"
+          style={{ border: "3px solid #0B5CFF", borderTopColor: "transparent" }}
+        />
+        <p className="text-gray-500 font-medium text-sm">
+          Validating meeting link...
+        </p>
       </main>
     );
   }
 
   if (error || !meeting) {
     return (
-      <main className="min-h-screen bg-zinc-950 text-white flex flex-col">
+      <main className="min-h-screen bg-[#F5F5F5] flex flex-col">
         <Navbar />
-        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center space-y-4">
-          <div className="bg-red-500/10 p-4 rounded-full border border-red-500/20 text-red-400">
-            <ShieldCheck className="w-12 h-12" />
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center gap-4">
+          <div className="w-16 h-16 bg-red-50 rounded-full border border-red-200 flex items-center justify-center">
+            <ShieldCheck className="w-8 h-8 text-red-400" />
           </div>
-          <h1 className="text-2xl font-bold">Invalid Meeting Link</h1>
-          <p className="text-zinc-400 max-w-md">{error}</p>
+          <h1 className="text-2xl font-semibold text-gray-900">
+            Invalid Meeting Link
+          </h1>
+          <p className="text-gray-500 max-w-sm">{error}</p>
           <button
             onClick={() => router.push("/")}
-            className="mt-4 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-xl transition-colors"
+            className="mt-2 px-6 py-2.5 text-white font-semibold rounded-xl transition-colors shadow-sm"
+            style={{ backgroundColor: "#0B5CFF" }}
           >
             Return to Dashboard
           </button>
@@ -173,13 +185,13 @@ export default function MeetingLobbyPage({ params }: PageProps) {
   }
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-white flex flex-col">
+    <main className="min-h-screen bg-[#F5F5F5] flex flex-col">
       <Navbar />
 
-      <div className="flex-1 max-w-6xl w-full mx-auto px-6 py-8 flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-12">
-        {/* Left Column: Camera Preview Tile */}
-        <div className="w-full lg:w-3/5 space-y-4">
-          <div className="relative aspect-video bg-zinc-900 rounded-3xl overflow-hidden border border-zinc-800 shadow-2xl flex items-center justify-center">
+      <div className="flex-1 max-w-5xl w-full mx-auto px-6 py-8 flex flex-col lg:flex-row items-center justify-center gap-8 lg:gap-12">
+        {/* Left: Camera Preview */}
+        <div className="w-full lg:w-3/5">
+          <div className="relative aspect-video bg-gray-900 rounded-2xl overflow-hidden border border-gray-200 shadow-lg flex items-center justify-center">
             <video
               ref={videoRef}
               autoPlay
@@ -192,55 +204,73 @@ export default function MeetingLobbyPage({ params }: PageProps) {
 
             {/* Video Off Fallback Avatar */}
             {isVideoOff && (
-              <div className="flex flex-col items-center justify-center space-y-3">
-                <div className="w-24 h-24 rounded-full bg-blue-600 flex items-center justify-center text-3xl font-bold text-white shadow-xl">
+              <div className="flex flex-col items-center justify-center gap-3">
+                <div
+                  className="w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold text-white shadow-lg"
+                  style={{ backgroundColor: "#747487" }}
+                >
                   {displayName.charAt(0).toUpperCase()}
                 </div>
-                <span className="text-zinc-400 text-sm font-medium">Camera is turned off</span>
+                <span className="text-gray-400 text-sm">Camera is off</span>
               </div>
             )}
 
             {/* Bottom Controls Overlay */}
-            <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 flex items-center space-x-4 bg-zinc-950/80 backdrop-blur-md px-6 py-3 rounded-full border border-zinc-800/80 shadow-lg">
+            <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-3 bg-black/60 backdrop-blur-sm px-5 py-2.5 rounded-full border border-white/10">
               <button
                 onClick={toggleAudio}
-                className={`p-3 rounded-full transition-colors ${
+                className={`p-2.5 rounded-full transition-colors ${
                   isAudioMuted
                     ? "bg-red-600 text-white hover:bg-red-700"
-                    : "bg-zinc-800 text-zinc-200 hover:bg-zinc-700"
+                    : "bg-white/20 text-white hover:bg-white/30"
                 }`}
                 title={isAudioMuted ? "Unmute Microphone" : "Mute Microphone"}
+                aria-label={isAudioMuted ? "Unmute" : "Mute"}
               >
-                {isAudioMuted ? <MicOff className="w-5 h-5" /> : <Mic className="w-5 h-5" />}
+                {isAudioMuted ? (
+                  <MicOff className="w-4 h-4" />
+                ) : (
+                  <Mic className="w-4 h-4" />
+                )}
               </button>
 
               <button
                 onClick={toggleVideo}
-                className={`p-3 rounded-full transition-colors ${
+                className={`p-2.5 rounded-full transition-colors ${
                   isVideoOff
                     ? "bg-red-600 text-white hover:bg-red-700"
-                    : "bg-zinc-800 text-zinc-200 hover:bg-zinc-700"
+                    : "bg-white/20 text-white hover:bg-white/30"
                 }`}
                 title={isVideoOff ? "Turn On Camera" : "Turn Off Camera"}
+                aria-label={isVideoOff ? "Turn camera on" : "Turn camera off"}
               >
-                {isVideoOff ? <VideoOff className="w-5 h-5" /> : <Video className="w-5 h-5" />}
+                {isVideoOff ? (
+                  <VideoOff className="w-4 h-4" />
+                ) : (
+                  <Video className="w-4 h-4" />
+                )}
               </button>
             </div>
           </div>
         </div>
 
-        {/* Right Column: Pre-Join Form */}
-        <div className="w-full lg:w-2/5 max-w-md bg-zinc-900/60 p-8 rounded-3xl border border-zinc-800 shadow-xl space-y-6">
-          <div>
-            <h1 className="text-2xl font-bold text-white mb-1">{meeting.title}</h1>
-            <p className="text-sm text-zinc-400">
-              Meeting Code: <code className="text-blue-400 font-mono">{meeting.meeting_code}</code>
-            </p>
-          </div>
-
-          <div className="space-y-4">
+        {/* Right: Pre-Join Form */}
+        <div className="w-full lg:w-2/5 max-w-sm">
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-7 space-y-5">
             <div>
-              <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
+              <h1 className="text-xl font-semibold text-gray-900 mb-1">
+                {meeting.title}
+              </h1>
+              <p className="text-sm text-gray-500">
+                Code:{" "}
+                <code className="font-mono font-semibold" style={{ color: "#0B5CFF" }}>
+                  {meeting.meeting_code}
+                </code>
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
                 Your Display Name
               </label>
               <input
@@ -248,24 +278,25 @@ export default function MeetingLobbyPage({ params }: PageProps) {
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Enter your name"
-                className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors text-sm font-medium"
+                className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition text-sm"
               />
             </div>
 
             <button
               onClick={handleJoinRoom}
-              className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl shadow-lg hover:shadow-blue-600/25 transition-all text-base"
+              className="w-full py-3 text-white font-semibold rounded-xl shadow-sm transition-all text-sm hover:opacity-90 active:scale-[0.98]"
+              style={{ backgroundColor: "#0B5CFF" }}
             >
               Join Meeting
             </button>
-          </div>
 
-          <div className="pt-4 border-t border-zinc-800/80 flex items-center justify-between text-xs text-zinc-500">
-            <span className="flex items-center space-x-1">
-              <ShieldCheck className="w-4 h-4 text-emerald-500" />
-              <span>Encrypted P2P Media</span>
-            </span>
-            <span>Host: {meeting.host?.name || "Default Host"}</span>
+            <div className="pt-3 border-t border-gray-100 flex items-center justify-between text-xs text-gray-400">
+              <span className="flex items-center gap-1.5">
+                <ShieldCheck className="w-3.5 h-3.5 text-green-500" />
+                <span>Encrypted P2P Media</span>
+              </span>
+              <span>Host: {meeting.host?.name || "Default Host"}</span>
+            </div>
           </div>
         </div>
       </div>

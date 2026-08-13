@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { PlusSquare, ArrowLeft, Loader2, LogIn } from "lucide-react";
+import { ArrowLeft, Loader2, LogIn } from "lucide-react";
 import Navbar from "@/components/Navbar";
 import { api } from "@/lib/api";
 
@@ -40,7 +40,6 @@ export default function JoinPage() {
     try {
       // Validate meeting code and register participant row
       await api.joinMeeting(cleanCode, displayName.trim() || "Guest");
-      
       // Redirect to pre-join lobby
       router.push(`/meeting/${cleanCode}`);
     } catch (err: any) {
@@ -52,69 +51,81 @@ export default function JoinPage() {
   };
 
   return (
-    <main className="min-h-screen bg-zinc-950 text-white flex flex-col">
+    <main className="min-h-screen bg-[#F5F5F5] flex flex-col">
       <Navbar />
 
-      <div className="flex-1 max-w-md w-full mx-auto px-6 py-12 flex flex-col justify-center">
-        <button
-          onClick={() => router.push("/")}
-          className="inline-flex items-center space-x-2 text-sm text-zinc-400 hover:text-white transition-colors mb-6"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to Dashboard</span>
-        </button>
+      <div className="flex-1 flex items-center justify-center p-6">
+        <div className="w-full max-w-md">
+          <button
+            onClick={() => router.push("/")}
+            className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors mb-6 font-medium"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Dashboard</span>
+          </button>
 
-        <div className="bg-zinc-900/60 p-8 rounded-3xl border border-zinc-800 shadow-2xl space-y-6">
-          <div className="flex items-center space-x-3 border-b border-zinc-800/80 pb-6">
-            <div className="bg-blue-600/10 p-3 rounded-2xl border border-blue-500/20 text-blue-400">
-              <PlusSquare className="w-6 h-6" />
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-white">Join a Meeting</h1>
-              <p className="text-sm text-zinc-400">Enter a meeting code or paste an invite link</p>
-            </div>
-          </div>
-
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/20 text-red-400 px-4 py-3 rounded-xl text-sm font-medium">
-              {error}
-            </div>
-          )}
-
-          <form onSubmit={handleJoin} className="space-y-5">
-            <div>
-              <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
-                Meeting Code or Invite Link *
-              </label>
-              <input
-                type="text"
-                value={inputCode}
-                onChange={(e) => setInputCode(e.target.value)}
-                placeholder="e.g. sync-team-101 or paste link"
-                required
-                className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors text-sm font-mono"
-              />
+          <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+            {/* Card Header */}
+            <div className="px-8 py-6 border-b border-gray-100">
+              <div className="flex items-center gap-3">
+                <div
+                  className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                  style={{ backgroundColor: "#EBF2FF" }}
+                >
+                  <LogIn className="w-5 h-5" style={{ color: "#0B5CFF" }} />
+                </div>
+                <div>
+                  <h1 className="text-xl font-semibold text-gray-900">
+                    Join a Meeting
+                  </h1>
+                  <p className="text-sm text-gray-500">
+                    Enter a code or paste an invite link
+                  </p>
+                </div>
+              </div>
             </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-zinc-400 uppercase tracking-wider mb-2">
-                Your Display Name *
-              </label>
-              <input
-                type="text"
-                value={displayName}
-                onChange={(e) => setDisplayName(e.target.value)}
-                placeholder="Your name in the room"
-                required
-                className="w-full px-4 py-3 bg-zinc-950 border border-zinc-800 rounded-xl text-white placeholder-zinc-500 focus:outline-none focus:border-blue-500 transition-colors text-sm"
-              />
-            </div>
+            {/* Form */}
+            <form onSubmit={handleJoin} className="px-8 py-6 space-y-5">
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-xl text-sm font-medium">
+                  {error}
+                </div>
+              )}
 
-            <div className="pt-2">
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                  Meeting Code or Invite Link *
+                </label>
+                <input
+                  type="text"
+                  value={inputCode}
+                  onChange={(e) => setInputCode(e.target.value)}
+                  placeholder="e.g. abc-defg-hij or paste link"
+                  required
+                  className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition text-sm font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1.5">
+                  Your Display Name *
+                </label>
+                <input
+                  type="text"
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Your name in the room"
+                  required
+                  className="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-xl text-gray-900 placeholder-gray-400 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-200 transition text-sm"
+                />
+              </div>
+
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full py-3.5 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-xl transition-all shadow-lg flex items-center justify-center space-x-2 disabled:opacity-50"
+                className="w-full py-3 text-white font-semibold rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 disabled:opacity-60 mt-2"
+                style={{ backgroundColor: "#0B5CFF" }}
               >
                 {loading ? (
                   <>
@@ -128,8 +139,8 @@ export default function JoinPage() {
                   </>
                 )}
               </button>
-            </div>
-          </form>
+            </form>
+          </div>
         </div>
       </div>
     </main>
