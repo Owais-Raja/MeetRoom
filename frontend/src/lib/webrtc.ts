@@ -16,14 +16,16 @@ export const RTC_CONFIGURATION: RTCConfiguration = {
     {
       urls: [
         "turn:openrelay.metered.ca:80",
+        "turn:openrelay.metered.ca:80?transport=tcp",
         "turn:openrelay.metered.ca:443",
         "turn:openrelay.metered.ca:443?transport=tcp",
-        "turn:global.relay.metered.ca:80",
-        "turn:global.relay.metered.ca:443",
-        "turn:global.relay.metered.ca:443?transport=tcp",
+        "turns:openrelay.metered.ca:443?transport=tcp",
       ],
-      username: "openrelay",
-      credential: "openrelay",
+      // These are OpenRelay's published public credentials. The previous
+      // "openrelay" values caused TURN authentication to fail, leaving
+      // cross-network calls without a relay candidate.
+      username: "openrelayproject",
+      credential: "openrelayproject",
     },
   ],
   bundlePolicy: "max-bundle",
