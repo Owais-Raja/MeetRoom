@@ -25,6 +25,7 @@ export interface Meeting {
   id: number;
   meeting_code: string;
   host_id: number;
+  host_token?: string;
   title: string;
   description?: string;
   meeting_type: "instant" | "scheduled";
@@ -37,6 +38,7 @@ export interface Meeting {
   host?: User;
   participants?: Participant[];
 }
+
 
 /**
  * Generic fetch wrapper for FastAPI backend API requests.
@@ -110,11 +112,12 @@ export const api = {
     }),
 
   // Validate code and create participant record on join
-  joinMeeting: (code: string, displayName: string): Promise<Participant> =>
+  joinMeeting: (code: string, displayName: string, hostToken?: string): Promise<Participant> =>
     fetchAPI<Participant>(`/api/meetings/${code}/join`, {
       method: "POST",
-      body: JSON.stringify({ display_name: displayName }),
+      body: JSON.stringify({ display_name: displayName, host_token: hostToken }),
     }),
+
 
   // Host ends meeting for all participants
   endMeeting: (code: string): Promise<Meeting> =>

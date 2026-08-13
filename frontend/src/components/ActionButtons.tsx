@@ -16,6 +16,9 @@ export default function ActionButtons() {
     setCreating(true);
     try {
       const newMeeting = await api.createInstantMeeting("Instant Meeting");
+      if (newMeeting.host_token && typeof window !== "undefined") {
+        localStorage.setItem(`meetroom_host_token_${newMeeting.meeting_code}`, newMeeting.host_token);
+      }
       setCreatedMeeting(newMeeting);
     } catch (err: any) {
       console.error("Failed to create instant meeting:", err);
@@ -24,6 +27,7 @@ export default function ActionButtons() {
       setCreating(false);
     }
   };
+
 
   const actions = [
     {

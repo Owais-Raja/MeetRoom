@@ -115,8 +115,13 @@ export default function MeetingLobbyPage({ params }: PageProps) {
 
   // Proceed to actual meeting room with server-assigned role
   const handleJoinRoom = async () => {
+    const hostToken =
+      typeof window !== "undefined"
+        ? localStorage.getItem(`meetroom_host_token_${code}`) || undefined
+        : undefined;
+
     try {
-      const p = await api.joinMeeting(code, displayName || "Guest");
+      const p = await api.joinMeeting(code, displayName || "Guest", hostToken);
       const queryParams = new URLSearchParams({
         name: displayName || "Guest",
         role: p.role || "participant",
@@ -135,6 +140,7 @@ export default function MeetingLobbyPage({ params }: PageProps) {
       router.push(`/meeting/${code}/room?${queryParams.toString()}`);
     }
   };
+
 
   if (loading) {
     return (

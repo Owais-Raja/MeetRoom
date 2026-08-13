@@ -58,7 +58,11 @@ class Meeting(Base):
     # Foreign key referencing the host user
     host_id = Column(Integer, ForeignKey("users.id"), nullable=False, index=True)
     
+    # Unique host secret token for host authorization
+    host_token = Column(String, nullable=True)
+    
     title = Column(String, nullable=False)
+
     description = Column(Text, nullable=True)
     
     # Discriminator for meeting creation type

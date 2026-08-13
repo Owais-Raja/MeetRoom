@@ -45,15 +45,20 @@ export default function SchedulePage() {
       // Convert datetime-local string to ISO timestamp
       const scheduledDateISO = new Date(scheduledAt).toISOString();
 
-      await api.scheduleMeeting({
+      const newMeeting = await api.scheduleMeeting({
         title: title.trim(),
         description: description.trim() || undefined,
         scheduled_at: scheduledDateISO,
         duration_minutes: durationMinutes,
       });
 
+      if (newMeeting.host_token && typeof window !== "undefined") {
+        localStorage.setItem(`meetroom_host_token_${newMeeting.meeting_code}`, newMeeting.host_token);
+      }
+
       // Redirect back to dashboard to view newly scheduled meeting
       router.push("/");
+
     } catch (err: any) {
       console.error("Failed to schedule meeting:", err);
       setError("Error scheduling meeting. Make sure FastAPI backend is running.");

@@ -49,6 +49,7 @@ class ParticipantCreate(ParticipantBase):
 
 class JoinMeetingRequest(BaseModel):
     display_name: str
+    host_token: Optional[str] = None
 
 
 class ParticipantResponse(ParticipantBase):
@@ -83,9 +84,11 @@ class MeetingResponse(MeetingBase):
     id: int
     meeting_code: str
     host_id: int
+    host_token: Optional[str] = None
     meeting_type: str
     status: str
     scheduled_at: Optional[datetime] = None
+
     started_at: Optional[datetime] = None
     ended_at: Optional[datetime] = None
     created_at: datetime

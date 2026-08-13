@@ -43,11 +43,13 @@ def create_instant_meeting(
         meeting_code = generate_meeting_code()
 
     now = datetime.now(timezone.utc)
+    host_token = secrets.token_hex(16)
 
     # 1. Create Meeting DB record
     meeting = models.Meeting(
         meeting_code=meeting_code,
         host_id=1,  # Default seeded user
+        host_token=host_token,
         title=meeting_title,
         description=meeting_desc,
         meeting_type="instant",
@@ -86,7 +88,7 @@ def create_scheduled_meeting(
 ):
     """
     Schedule a new meeting for a future date/time.
-    - Generates a unique meeting_code.
+    - Generates a unique meeting_code and host_token.
     - Sets host_id=1 (Default User), status='scheduled', meeting_type='scheduled'.
     """
     # Ensure meeting code uniqueness
@@ -95,10 +97,12 @@ def create_scheduled_meeting(
         meeting_code = generate_meeting_code()
 
     now = datetime.now(timezone.utc)
+    host_token = secrets.token_hex(16)
 
     meeting = models.Meeting(
         meeting_code=meeting_code,
         host_id=1,  # Default seeded user
+        host_token=host_token,
         title=payload.title,
         description=payload.description,
         meeting_type="scheduled",
@@ -112,6 +116,7 @@ def create_scheduled_meeting(
     db.refresh(meeting)
 
     return meeting
+
 
 
 @router.get("/upcoming", response_model=List[schemas.MeetingResponse])
@@ -191,37 +196,15 @@ def join_meeting(
             detail=f"Cannot join. This meeting has already {meeting.status}."
         )
 
-    # Determine if user is host or guest participant
+    # Determine host status strictly via host_token secret matching
     now = datetime.now(timezone.utc)
     
-    # Check if a host participant already exists for this meeting
-    existing_host = (
-        db.query(models.Participant)
-        .filter(models.Participant.meeting_id == meeting.id, models.Participant.role == "host")
-        .first()
-    )
-
-    host_user = db.query(models.User).filter(models.User.id == meeting.host_id).first()
-    host_name = host_user.name.strip().lower() if host_user else ""
-    user_display = payload.display_name.strip().lower()
-
-    # User is ONLY assigned 'host' if their display name matches the host's profile name
-    # AND no active host has joined the room yet. Guests NEVER get host permissions.
     is_host = False
-    if host_name and user_display == host_name:
-        existing_active_host = (
-            db.query(models.Participant)
-            .filter(
-                models.Participant.meeting_id == meeting.id,
-                models.Participant.role == "host",
-                models.Participant.left_at == None
-            )
-            .first()
-        )
-        if not existing_active_host:
-            is_host = True
+    if payload.host_token and meeting.host_token and payload.host_token.strip() == meeting.host_token.strip():
+        is_host = True
 
     role = "host" if is_host else "participant"
+
 
 
 
