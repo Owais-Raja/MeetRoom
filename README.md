@@ -18,12 +18,13 @@ A full-stack video meeting platform built for high-quality real-time peer-to-pee
 - **Backend**: FastAPI (Python 3.10+), Uvicorn ASGI Web Server
 - **Database**: SQLite with SQLAlchemy 2.0 ORM & Pydantic v2 data validation
 - **Real-Time Communication**: Native Browser WebRTC (`RTCPeerConnection`, `MediaStream`) with FastAPI WebSocket Signaling (`/ws/meetings/{code}`)
-- **NAT Traversal & Relaying**: Public STUN plus authenticated, short-lived TURN credentials for dependable cross-network and mobile connectivity.
+- **NAT Traversal & Relaying**: [Metered TURN / Open Relay](https://www.metered.ca/turn-server) — provides authenticated, short-lived TURN credentials that relay audio/video traffic when participants are on **different networks** (separate Wi-Fi, mobile data, corporate firewalls). Without TURN, WebRTC can only connect peers on the same local network via STUN.
 - **In-Call Screen Sharing**: Real-time browser display capture (`getDisplayMedia`) with seamless WebRTC video track replacement.
 - **In-Call Real-Time Chat**: Slide-over chat drawer with unread message counter badge and WebSocket messaging relay.
 - **Host Authorization (`host_token`)**: Cryptographic secret token generated on meeting creation to enforce host privileges regardless of user display name.
 - **Landing Page Settings**: Modal for viewing, updating, and persisting custom display names in SQLite and `localStorage`.
 - **Share Meeting Modal**: Copy link, copy code, native share, and instant join triggers.
+- **Schedule & Cancel Meetings**: Schedule future meetings with title, description, date/time, and duration. Cancel any scheduled meeting before it starts.
 
 ---
 
@@ -33,16 +34,16 @@ A full-stack video meeting platform built for high-quality real-time peer-to-pee
 ├── backend/
 │   ├── app/
 │   │   ├── __init__.py
-│   │   ├── main.py          # FastAPI entrypoint & CORS middleware
+│   │   ├── main.py          # FastAPI entrypoint, CORS middleware, TURN credentials proxy
 │   │   ├── database.py      # SQLAlchemy SQLite engine & session setup
 │   │   ├── models.py        # ORM models (User, Meeting, Participant)
 │   │   ├── schemas.py       # Pydantic input/output schemas
 │   │   └── routers/
 │   │       ├── __init__.py
 │   │       ├── users.py     # GET /me, PUT /me (Profile update)
-│   │       ├── meetings.py  # GET /upcoming, /recent, POST /instant, /schedule, /join, /end
+│   │       ├── meetings.py  # Full meeting lifecycle: instant, schedule, cancel, join, end
 │   │       └── signaling.py # WS /ws/meetings/{code} WebSocket signaling router
-│   ├── seed.py              # Re-runnable DB seed script
+│   ├── seed.py              # Re-runnable DB seed script (creates default user id=1)
 │   └── requirements.txt     # Python dependencies
 ├── frontend/
 │   ├── src/
@@ -53,18 +54,18 @@ A full-stack video meeting platform built for high-quality real-time peer-to-pee
 │   │   │   ├── join/        # Join meeting page
 │   │   │   ├── schedule/    # Schedule meeting page
 │   │   │   └── meeting/[code]/
-│   │   │       ├── page.tsx # Pre-Join Lobby page
+│   │   │       ├── page.tsx      # Pre-Join Lobby page
 │   │   │       └── room/page.tsx # Active Meeting Room (Video grid, Chat, Host controls)
 │   │   ├── components/
-│   │   │   ├── Navbar.tsx           # Top navigation bar & Settings trigger
-│   │   │   ├── ActionButtons.tsx    # Dashboard action cards
-│   │   │   ├── UpcomingMeetings.tsx # Tabbed upcoming/recent meeting list
-│   │   │   ├── SettingsModal.tsx    # Profile display name modal
-│   │   │   └── ShareMeetingModal.tsx # Share meeting link & code modal
+│   │   │   ├── Navbar.tsx             # Top navigation bar & Settings trigger
+│   │   │   ├── ActionButtons.tsx      # Dashboard action cards
+│   │   │   ├── UpcomingMeetings.tsx   # Tabbed upcoming/recent meeting list with cancel button
+│   │   │   ├── SettingsModal.tsx      # Profile display name modal
+│   │   │   └── ShareMeetingModal.tsx  # Share meeting link & code modal
 │   │   └── lib/
-│   │       ├── api.ts       # Typed API client wrapper for FastAPI
+│   │       ├── api.ts       # Typed API client wrapper for all FastAPI routes
 │   │       ├── signaling.ts # WebSocket signaling client
-│   │       └── webrtc.ts    # STUN/TURN configuration & RTCPeerConnection factory
+│   │       └── webrtc.ts    # STUN/TURN ICE configuration & RTCPeerConnection factory
 │   └── package.json
 ├── meetroom-architecture.md # Architecture specification document
 └── README.md                # Project documentation
@@ -77,7 +78,7 @@ A full-stack video meeting platform built for high-quality real-time peer-to-pee
 | Table | Purpose |
 |-------|---------|
 | `users` | Stores registered platform users (seeded with single default user `id=1`). |
-| `meetings` | Tracks instant & scheduled meetings, host user ID, meeting codes (`abc-defg-hij`), secret `host_token`, status (`scheduled`, `ongoing`, `ended`), and timestamps. |
+| `meetings` | Tracks instant & scheduled meetings, host user ID, meeting codes (`abc-defg-hij`), secret `host_token`, status (`scheduled`, `ongoing`, `ended`, `cancelled`), and timestamps. |
 | `participants` | Presence table connecting meetings and users/guests with presence state (`joined_at`, `left_at`, `role`, `is_muted`, `is_video_on`). |
 
 ---
@@ -97,8 +98,9 @@ A full-stack video meeting platform built for high-quality real-time peer-to-pee
 | `POST` | `/api/meetings/schedule` | Schedule a future meeting |
 | `POST` | `/api/meetings/{meeting_code}/join` | Validate code and register participant join |
 | `POST` | `/api/meetings/{meeting_code}/end` | Host ends meeting for all participants |
+| `POST` | `/api/meetings/{meeting_code}/cancel` | Cancel a scheduled meeting before it starts |
 | `DELETE` | `/api/meetings/{meeting_code}/participants/{id}` | Host removes a participant |
-| `GET` | `/api/turn-credentials` | Returns short-lived TURN configuration for the browser; the provider API key stays on the backend |
+| `GET` | `/api/turn-credentials` | Returns short-lived Metered TURN ICE server config (API key stays on backend) |
 
 ### WebSocket Endpoint
 | Protocol | Path | Purpose |
@@ -128,7 +130,7 @@ venv\Scripts\activate
 # Install dependencies
 pip install -r requirements.txt
 
-# Seed database with sample data
+# Seed database with sample data (creates default user id=1)
 python seed.py
 
 # Start FastAPI development server on http://localhost:8000
@@ -147,29 +149,79 @@ npm install
 npm run dev
 ```
 
-### 3. Required Cross-Network TURN Setup
+### 3. Environment Variables
 
-Same-Wi-Fi calls can connect directly. Calls between different Wi-Fi, mobile, or corporate networks require a TURN relay.
+#### Backend (`backend/.env` or Render Environment Variables)
 
-1. Create a free Metered TURN/Open Relay account and copy its TURN credentials API URL.
-2. In the Render service environment variables, set `TURN_CREDENTIALS_URL` to:
-   ```text
-   https://<your-app>.metered.live/api/v1/turn/credentials?apiKey=<your-api-key>
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `TURN_CREDENTIALS_URL` | **Yes (production)** | Metered API URL to fetch TURN credentials. See section below. |
+| `ALLOWED_ORIGINS` | Optional | Comma-separated list of allowed CORS origins (e.g. `https://meetroom-scaler.vercel.app`). |
+
+#### Frontend (`.env.local` or Vercel Environment Variables)
+
+| Variable | Required | Description |
+|----------|----------|-------------|
+| `NEXT_PUBLIC_API_URL` | **Yes (production)** | Full URL of the deployed backend, e.g. `https://meetroom-77y7.onrender.com` |
+| `NEXT_PUBLIC_WS_HOST` | Optional | WebSocket host override, e.g. `meetroom-77y7.onrender.com` |
+
+> ⚠️ `NEXT_PUBLIC_*` variables are baked into the frontend **at build time** by Next.js. If you change them on Vercel, you must trigger a new deployment (not just redeploy the cached build).
+
+---
+
+## 📡 Cross-Network Audio & Video — Metered TURN Setup
+
+### Why Metered TURN is required
+
+WebRTC uses **STUN** servers to discover a peer's public IP address and attempt a direct peer-to-peer connection. However, direct connections **fail** when participants are on:
+- Different home Wi-Fi networks
+- Mobile data (4G/5G)
+- Corporate or university firewalls / symmetric NAT
+
+In these cases, a **TURN (Traversal Using Relays around NAT) server** acts as a media relay — it forwards encrypted audio and video packets between peers when a direct path cannot be established.
+
+MeetRoom uses **[Metered TURN / Open Relay](https://www.metered.ca/turn-server)** as its TURN provider. The backend fetches short-lived TURN credentials from Metered and exposes them to the browser via `/api/turn-credentials` — the API key **never leaves the backend**.
+
+### How to configure it
+
+1. **Sign up** at [metered.ca](https://www.metered.ca) → create a TURN server application → copy your **API key**.
+
+2. **Set the following environment variable** on your Render backend service:
    ```
-3. Redeploy Render. The backend keeps this URL and API key private, and browsers receive only short-lived TURN credentials through `/api/turn-credentials`.
+   TURN_CREDENTIALS_URL=https://<your-app-name>.metered.live/api/v1/turn/credentials?apiKey=<your-api-key>
+   ```
 
-Verify the setup by opening `https://meetroom-77y7.onrender.com/api/turn-credentials`. It should return an `iceServers` array rather than a 503 error. Do not add this secret to Vercel or any `NEXT_PUBLIC_*` variable.
+3. **Redeploy** the Render service. The backend will proxy the credentials from Metered and serve them to the browser.
 
-### Time Zones
+4. **Verify** by visiting:
+   ```
+   https://meetroom-77y7.onrender.com/api/turn-credentials
+   ```
+   You should see an `iceServers` JSON array — not a `503` error.
 
-Scheduled meeting times are stored in UTC and shown in each browser's local time zone. For example, a meeting scheduled for 9:35 PM in India is displayed as 9:35 PM for viewers in India.
+> ⚠️ Do **not** add `TURN_CREDENTIALS_URL` or your Metered API key to any `NEXT_PUBLIC_*` Vercel variable. It must remain server-side only.
+
+### ICE Server priority in the browser
+
+MeetRoom's [`webrtc.ts`](frontend/src/lib/webrtc.ts) loads servers in this order:
+1. **Google STUN** (`stun.l.google.com:19302`) — for direct LAN/same-network calls
+2. **Twilio STUN** (`global.stun.twilio.com:3478`) — secondary STUN fallback
+3. **Metered TURN** (UDP + TCP + TLS) — relay for cross-network participants
+
+---
+
+## ⏰ Timezone Handling
+
+Scheduled meeting times are entered and stored in the **user's local time zone**. There is no UTC conversion — the time you enter (e.g. `9:35 PM`) is exactly what gets stored and displayed back. This avoids offset errors for users in IST and other non-UTC zones.
 
 ---
 
 ## 🧪 How to Verify Core Features
 
-1. **Display Name Settings**: On the dashboard (`http://localhost:3000`), click the Settings gear icon in the top right → change your display name → click **Save Changes**. Verify your name updates instantly.
-2. **Instant Meeting & Share Modal**: Click **New Meeting** → observe the Share Meeting modal displaying full invite link and code → click **Copy Link** → click **Join Meeting Now**.
-3. **In-Call Screen Sharing**: Inside an active call, click **Share Screen** → select a browser tab or desktop screen → observe the live screen stream. Click **Stop Share** to revert to camera feed.
-4. **In-Call Real-Time Chat**: Open the Chat drawer (speech bubble icon) → type a message and press Enter → observe real-time message delivery across connected peers.
-5. **Host Mute & Kick Controls**: As Host, open the Participants drawer (users icon) → click the Mic icon next to a participant to mute them (icon turns red `MicOff`) → click the Remove icon (`UserX`) to disconnect them.
+1. **Display Name Settings**: On the dashboard, click the Settings gear icon → change your display name → click **Save Changes**.
+2. **Instant Meeting & Share Modal**: Click **New Meeting** → observe the Share Meeting modal → copy the invite link → click **Join Meeting Now**.
+3. **Schedule & Cancel a Meeting**: Click **Schedule Meeting** → fill in a future date/time → click **Schedule Meeting**. On the dashboard, click the **Cancel** button (×) next to any scheduled meeting to remove it.
+4. **In-Call Screen Sharing**: Inside an active call, click **Share Screen** → select a browser tab or desktop screen. Click **Stop Share** to revert to camera feed.
+5. **In-Call Real-Time Chat**: Open the Chat drawer → type a message → observe real-time delivery across peers.
+6. **Host Mute & Kick Controls**: As Host, open the Participants drawer → click the Mic icon to mute a participant → click Remove (`UserX`) to disconnect them.
+7. **Cross-Network Video Call**: Join from two devices on **different networks** (e.g. phone on mobile data, laptop on Wi-Fi) — audio and video should relay through Metered TURN. Verify TURN is active by checking `https://meetroom-77y7.onrender.com/api/turn-credentials` returns ICE server data.
